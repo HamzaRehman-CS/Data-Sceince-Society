@@ -1,27 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "app": {
-      "root": ".",
-      "runtime": "node"
-    },
-    "studio": {
-      "root": "studio",
-      "framework": "sanity"
+  "framework": null,
+  "buildCommand": "npm run build",
+  "functions": {
+    "server.js": {
+      "includeFiles": "{website,accounts,admin,assets,uploads,lib}/**/*"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/studio/(.*)",
-      "destination": {
-        "service": "studio"
-      }
-    },
-    {
-      "source": "/(.*)",
-      "destination": {
-        "service": "app"
-      }
-    }
-  ]
+  }
 }

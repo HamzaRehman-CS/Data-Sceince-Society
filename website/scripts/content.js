@@ -67,7 +67,7 @@
   };
   async function sync() {
     if (loading) return loading;
-    loading = (async () => { const content = await api('/api/sanity-content'); if (revision !== content._revision) { revision = content._revision; applySiteContent(content); } })();
+    loading = (async () => { const content = await api('/api/content'); if (revision !== content._revision) { revision = content._revision; applySiteContent(content); } })();
     try { await loading; } catch (error) { showAdminToast('Live content is unavailable. Reload to try again.', 'error'); } finally { loading = null; }
   }
   function connect() {
@@ -77,5 +77,5 @@
   document.addEventListener('visibilitychange', () => { if(new URLSearchParams(location.search).has('edit'))return; if (document.hidden) { stream?.close(); stream = null; } else { revision = undefined; sync(); connect(); } });
   window.addEventListener('pagehide', () => stream?.close());
   window.addEventListener('pageshow', e => { if (e.persisted) { revision = undefined; sync(); connect(); } });
-  (async () => { try { DSS.user = (await api('/api/auth/me')).user; await sync(); connect(); } catch (error) { showAdminToast(error.message, 'error'); } })();
+  (async () => { try { const account = await api('/api/auth/me'); DSS.user = account.user; DSS.authProvider = account.authProvider; await sync(); connect(); } catch (error) { showAdminToast(error.message, 'error'); } })();
 })();
