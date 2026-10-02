@@ -1,0 +1,26 @@
+{
+  "name": "data-science-society",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Data Science Society website and local content server",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node scripts/build.cjs",
+    "check": "node scripts/check.cjs",
+    "test": "npm run check && node --test tests/integration.cjs",
+    "test:browser": "node tests/browser.cjs",
+    "test:design": "node tests/design-regression.cjs",
+    "test:identity": "node tests/identity.cjs",
+    "check:studio": "npm --prefix studio run type-check",
+    "test:members": "node tests/members-v4.cjs",
+    "test:experience": "node tests/page-experience.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "lucide": "^0.468.0",
+    "tailwindcss": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

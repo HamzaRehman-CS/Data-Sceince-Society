@@ -1,0 +1,32 @@
+{
+  "name": "data-science-society-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Data Science Society - Sanity Studio Admin Dashboard",
+  "main": "package.json",
+  "scripts": {
+    "dev": "sanity dev",
+    "start": "sanity start",
+    "build": "sanity build",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "sanity"
+  ],
+  "dependencies": {
+    "@sanity/color-input": "^4.0.2",
+    "@sanity/icons": "^3.5.7",
+    "@sanity/vision": "^3.77.2",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-is": "^18.3.1",
+    "sanity": "^3.77.2",
+    "styled-components": "^6.1.15"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.3"
+  }
+}

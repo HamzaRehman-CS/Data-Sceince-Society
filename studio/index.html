@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanity Studio | Data Science Society Control Center</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            sanityRed: {
+              DEFAULT: '#F03E2F',
+              hover: '#d93122',
+              dark: '#9a1e14',
+            },
+            studio: {
+              bg: '#0e1013',
+              sidebar: '#141619',
+              card: '#1a1c22',
+              border: '#262930',
+              hover: '#22252c',
+              text: '#f1f2f4',
+              muted: '#8b8e99'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #262930; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b3e48; }
+    .studio-active-item { background-color: rgba(240, 62, 47, 0.12) !important; color: #F03E2F !important; border-left: 3px solid #F03E2F; font-weight: 600; }
+    .studio-panel-shadow { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="bg-[#0e1013] text-[#f1f2f4] font-sans h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- Top Studio Navigation Bar -->
+  <header class="h-14 bg-[#141619] border-b border-[#262930] px-4 flex items-center justify-between z-30 flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <!-- Sanity Logo -->
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-sanityRed flex items-center justify-center text-white shadow-md shadow-sanityRed/20">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-bold text-sm tracking-tight text-white flex items-center gap-1.5 leading-none">
+            <span>SANITY STUDIO</span>
+            <span class="text-[9px] font-mono bg-sanityRed/20 text-sanityRed border border-sanityRed/30 px-1.5 py-0.5 rounded font-bold">v3</span>
+          </span>
+          <span class="text-[10px] font-mono text-studio-muted mt-0.5">Universal Admin Control Center</span>
+        </div>
+      </div>
+
+      <div class="h-5 w-px bg-[#262930] mx-2 hidden sm:block"></div>
+
+      <!-- Live Environment Tag -->
+      <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-studio-muted">
+        <span class="text-white font-medium">Data Science Society</span>
+        <span>/</span>
+        <span class="text-emerald-400 flex items-center gap-1 font-semibold">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          production (Live Sync)
+        </span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs & Actions -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <nav class="flex items-center bg-[#0e1013] p-1 rounded-xl border border-[#262930]">
+        <button onclick="switchStudioTab('desk')" id="tab-btn-desk" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#22252c] text-white flex items-center gap-1.5 transition-all">
+          <i data-lucide="layout" class="w-3.5 h-3.5 text-sanityRed"></i>
+          <span>Desk</span>
+        </button>
+        <button onclick="switchStudioTab('vision')" id="tab-btn-vision" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-studio-muted hover:text-white flex items-center gap-1.5 transition-all">
+          <i data-lucide="eye" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span>Vision (GROQ)</span>
+        </button>
+        <button onclick="switchStudioTab('settings')" id="tab-btn-settings" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-studio-muted hover:text-white flex items-center gap-1.5 transition-all">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <a href="http://localhost:3000" target="_blank" class="px-3 py-1.5 bg-[#1a1c22] hover:bg-[#22252c] border border-[#262930] text-xs font-semibold rounded-xl text-white flex items-center gap-1.5 transition-all shadow-sm">
+        <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i>
+        <span class="hidden md:inline">Open Live Website</span>
+      </a>
+
+      <button onclick="publishAllStudioChanges()" class="px-3.5 py-1.5 bg-sanityRed hover:bg-sanityRed-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-lg shadow-sanityRed/20 transform active:scale-95">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+        <span>Publish All</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Studio Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- DESK TAB VIEW (3-Column Workspace) -->
+    <div id="view-desk" class="flex-1 flex overflow-hidden w-full">
+
+      <!-- Column 1: Desk Navigation Sidebar -->
+      <aside class="w-72 bg-[#141619] border-r border-[#262930] flex flex-col flex-shrink-0 overflow-y-auto">
+        <div class="p-3 border-b border-[#262930]">
+          <div class="relative">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-studio-muted"></i>
+            <input type="text" id="desk-search" oninput="filterDeskItems(this.value)" placeholder="Search document types..." class="w-full bg-[#0e1013] border border-[#262930] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-studio-muted focus:outline-none focus:border-sanityRed">
+          </div>
+        </div>
+
+        <div class="py-2 px-2 space-y-0.5" id="desk-navigation-list">
+          
+          <!-- Category 1: Global Branding & Theme -->
+          <div class="px-2.5 pt-3 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-studio-muted">
+            🎨 Theme & Branding
+          </div>
+          <button onclick="selectDeskItem('themeSettings')" id="item-themeSettings" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all studio-active-item">
+            <span class="flex items-center gap-2">
+              <i data-lucide="palette" class="w-3.5 h-3.5 text-pink-400"></i>
+              <span>Theme Colors & Fonts</span>
+            </span>
+            <span class="w-1.5 h-1.5 rounded-full bg-sanityRed"></span>
+          </button>
+          <button onclick="selectDeskItem('siteSettings')" id="item-siteSettings" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="globe" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Site Branding & Navigation</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('bannerSettings')" id="item-bannerSettings" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="megaphone" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Announcement Banners & Alerts</span>
+            </span>
+            <span id="badge-banner-status" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">LIVE</span>
+          </button>
+
+          <!-- Category 2: Homepage -->
+          <div class="px-2.5 pt-4 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-studio-muted">
+            🏠 Homepage Controls
+          </div>
+          <button onclick="selectDeskItem('heroSection')" id="item-heroSection" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Hero Headline & CTAs</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('missionVision')" id="item-missionVision" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="shield" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Core Value Pillars</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('statsList')" id="item-statsList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Key Statistics & Metrics</span>
+            </span>
+            <span id="badge-stats-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">4</span>
+          </button>
+          <button onclick="selectDeskItem('adBanner')" id="item-adBanner" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="megaphone" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>Sponsored Ad Banner</span>
+            </span>
+          </button>
+
+          <!-- Category 3: Page Content Editors -->
+          <div class="px-2.5 pt-4 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-studio-muted">
+            📄 Page Content & Headings
+          </div>
+          <button onclick="selectDeskItem('pageAbout')" id="item-pageAbout" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-400"></i>
+              <span>About Us Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageResearch')" id="item-pageResearch" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="microscope" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>Research Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageProjects')" id="item-pageProjects" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="folder-git-2" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Projects Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageBlog')" id="item-pageBlog" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="newspaper" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Blog Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageEvents')" id="item-pageEvents" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>Events Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageResources')" id="item-pageResources" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="library" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>Resources Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageJoin')" id="item-pageJoin" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Opportunities Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageContact')" id="item-pageContact" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-teal-400"></i>
+              <span>Contact Page</span>
+            </span>
+          </button>
+          <button onclick="selectDeskItem('pageCommunity')" id="item-pageCommunity" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-yellow-400"></i>
+              <span>Community Protocols</span>
+            </span>
+          </button>
+
+          <!-- Category 4: Collections -->
+          <div class="px-2.5 pt-4 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-studio-muted">
+            📰 Collections & Content
+          </div>
+          <button onclick="selectDeskItem('postsList')" id="item-postsList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Blog Articles</span>
+            </span>
+            <span id="badge-posts-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">3</span>
+          </button>
+          <button onclick="selectDeskItem('papersList')" id="item-papersList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>Research Papers</span>
+            </span>
+            <span id="badge-papers-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">3</span>
+          </button>
+          <button onclick="selectDeskItem('teamList')" id="item-teamList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="users" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Team & Leadership</span>
+            </span>
+            <span id="badge-team-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">9</span>
+          </button>
+          <button onclick="selectDeskItem('eventsList')" id="item-eventsList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>Events & Hackathons</span>
+            </span>
+            <span id="badge-events-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">3</span>
+          </button>
+          <button onclick="selectDeskItem('projectsList')" id="item-projectsList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="code" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Open Science Projects</span>
+            </span>
+            <span id="badge-projects-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">3</span>
+          </button>
+          <button onclick="selectDeskItem('resourcesList')" id="item-resourcesList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="file-code" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>Learning Resources</span>
+            </span>
+            <span id="badge-resources-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#22252c] text-studio-muted">3</span>
+          </button>
+
+          <!-- Category 5: Submissions -->
+          <div class="px-2.5 pt-4 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-studio-muted">
+            📥 Submissions & Inbox
+          </div>
+          <button onclick="selectDeskItem('inquiriesList')" id="item-inquiriesList" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-studio-text hover:bg-[#22252c] flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i data-lucide="inbox" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>Inquiries & Applications</span>
+            </span>
+            <span id="badge-inquiries-count" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 font-bold">0</span>
+          </button>
+
+        </div>
+      </aside>
+
+      <!-- Column 2: Document List / Collection Items -->
+      <aside id="desk-collection-column" class="w-80 bg-[#141619] border-r border-[#262930] flex flex-col flex-shrink-0 overflow-y-auto hidden">
+        <div class="p-3 border-b border-[#262930] flex items-center justify-between bg-[#1a1c22]">
+          <span id="collection-column-title" class="text-xs font-bold uppercase text-white font-mono">Documents</span>
+          <button onclick="createNewCollectionItem()" id="btn-add-collection-item" class="p-1.5 bg-sanityRed/20 hover:bg-sanityRed text-sanityRed hover:text-white rounded-lg transition-all text-xs font-bold flex items-center gap-1 px-2.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Create</span>
+          </button>
+        </div>
+        <div class="p-2 space-y-1" id="collection-items-list">
+          <!-- Dynamic collection cards injected here -->
+        </div>
+      </aside>
+
+      <!-- Column 3: Active Document Schema Form Editor -->
+      <main class="flex-1 bg-[#0e1013] flex flex-col overflow-hidden">
+        <!-- Document Action Header -->
+        <div class="h-14 border-b border-[#262930] px-6 flex items-center justify-between bg-[#141619]/60 backdrop-blur-sm flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div id="doc-type-icon-wrapper" class="w-9 h-9 rounded-xl bg-sanityRed/20 flex items-center justify-center text-sanityRed border border-sanityRed/30">
+              <i data-lucide="palette" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h1 id="active-document-title" class="text-sm font-bold text-white tracking-tight">Theme & Color Controls</h1>
+              <p id="active-document-subtitle" class="text-[11px] font-mono text-studio-muted">schemaType: 'themeSettings' • id: 'themeSettings'</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span id="doc-save-status" class="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Saved & Synced Live</span>
+            </span>
+            <button onclick="saveActiveDocument()" class="px-4 py-2 bg-sanityRed hover:bg-sanityRed-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-md active:scale-95">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>Save Document</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Fields Container -->
+        <div class="flex-1 overflow-y-auto p-6 md:p-8 max-w-4xl w-full mx-auto space-y-6" id="active-form-fields-container">
+          <!-- Schema Fields dynamically injected here -->
+        </div>
+      </main>
+
+    </div>
+
+    <!-- VISION TAB VIEW (GROQ Query Playground) -->
+    <div id="view-vision" class="flex-1 flex flex-col overflow-hidden hidden bg-[#0e1013]">
+      <div class="h-12 border-b border-[#262930] px-6 flex items-center justify-between bg-[#141619]">
+        <div class="flex items-center gap-2">
+          <i data-lucide="eye" class="w-4 h-4 text-sky-400"></i>
+          <span class="text-sm font-bold text-white font-mono">Vision — GROQ Query Explorer</span>
+        </div>
+        <button onclick="executeGroqQuery()" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold font-mono rounded-lg flex items-center gap-1.5 transition-all">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          <span>Execute Query (Ctrl+Enter)</span>
+        </button>
+      </div>
+
+      <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
+        <div class="flex flex-col h-full bg-[#141619] border border-[#262930] rounded-2xl overflow-hidden">
+          <div class="p-3 bg-[#1a1c22] border-b border-[#262930] text-xs font-mono font-bold text-studio-muted flex justify-between items-center">
+            <span>GROQ Query</span>
+            <div class="flex gap-2">
+              <button onclick="setQueryPreset('*[_type == \"themeSettings\"]')" class="text-[10px] text-sky-400 hover:underline">Theme</button>
+              <button onclick="setQueryPreset('*[_type == \"siteSettings\"]')" class="text-[10px] text-sky-400 hover:underline">Site</button>
+              <button onclick="setQueryPreset('*[_type == \"post\"]')" class="text-[10px] text-sky-400 hover:underline">Posts</button>
+              <button onclick="setQueryPreset('*[_type == \"teamMember\"]')" class="text-[10px] text-sky-400 hover:underline">Team</button>
+            </div>
+          </div>
+          <textarea id="groq-query-input" class="flex-1 w-full bg-[#0e1013] p-4 text-xs font-mono text-emerald-400 focus:outline-none resize-none" spellcheck="false">*[_type == "themeSettings"][0]</textarea>
+        </div>
+
+        <div class="flex flex-col h-full bg-[#141619] border border-[#262930] rounded-2xl overflow-hidden">
+          <div class="p-3 bg-[#1a1c22] border-b border-[#262930] text-xs font-mono font-bold text-studio-muted flex justify-between items-center">
+            <span>Result (JSON)</span>
+            <span id="groq-exec-time" class="text-[10px] text-emerald-400 font-mono">0ms</span>
+          </div>
+          <pre id="groq-result-output" class="flex-1 w-full bg-[#0e1013] p-4 text-xs font-mono text-slate-300 overflow-y-auto whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB VIEW -->
+    <div id="view-settings" class="flex-1 flex flex-col overflow-y-auto p-8 max-w-3xl mx-auto space-y-6 hidden">
+      <div class="bg-[#141619] border border-[#262930] rounded-2xl p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-white font-heading">Sanity Studio Configuration</h2>
+          <p class="text-xs text-studio-muted mt-1">Configure your Sanity Cloud Project ID, import/export backups, and reset settings.</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-mono uppercase text-studio-muted mb-1.5 font-semibold">Sanity Project ID</label>
+            <input type="text" id="config-project-id" class="w-full bg-[#0e1013] border border-[#262930] rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:border-sanityRed focus:outline-none" value="dss-cms-portal" placeholder="e.g. abc123xy">
+            <span class="text-[11px] text-studio-muted mt-1 block">Your project ID from sanity.io/manage</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-mono uppercase text-studio-muted mb-1.5 font-semibold">Dataset</label>
+            <input type="text" id="config-dataset" class="w-full bg-[#0e1013] border border-[#262930] rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:border-sanityRed focus:outline-none" value="production" placeholder="production">
+          </div>
+
+          <div>
+            <label class="block text-xs font-mono uppercase text-studio-muted mb-1.5 font-semibold">Sanity API Token (Optional / Read & Write)</label>
+            <input type="password" id="config-token" class="w-full bg-[#0e1013] border border-[#262930] rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:border-sanityRed focus:outline-none" placeholder="sk...">
+          </div>
+
+          <div class="pt-4 border-t border-[#262930] flex flex-wrap gap-3 justify-between items-center">
+            <div class="flex gap-2">
+              <button onclick="saveSanityConfig()" class="px-5 py-2.5 bg-sanityRed hover:bg-sanityRed-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md">
+                Save Config
+              </button>
+              <button onclick="exportAllSiteJSON()" class="px-4 py-2.5 bg-[#22252c] hover:bg-[#2d313a] border border-[#3b3e48] text-xs font-semibold text-sky-300 rounded-xl transition-all flex items-center gap-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Export JSON Backup</span>
+              </button>
+            </div>
+            <button onclick="resetToFactoryDefaults()" class="px-4 py-2.5 bg-[#1e1315] hover:bg-rose-950 border border-rose-900/50 text-xs font-semibold text-rose-300 rounded-xl transition-all flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Reset to Defaults</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Studio JavaScript Engine -->
+  <script src="studio-app.js"></script>
+</body>
+</html>

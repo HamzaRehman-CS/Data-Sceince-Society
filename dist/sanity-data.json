@@ -1,0 +1,486 @@
+{
+  "theme": {
+    "accent": "#0284c7",
+    "sky": "#38bdf8",
+    "bg": "#030712",
+    "surface": "#0f172a",
+    "mode": "dark",
+    "fontHeading": "'Outfit', sans-serif",
+    "fontBody": "'Plus Jakarta Sans', sans-serif",
+    "canvasEnabled": true,
+    "canvasOpacity": "80",
+    "customCss": ""
+  },
+  "siteSettings": {
+    "siteTitle": "Data Science Society",
+    "logoImage": "",
+    "siteDesc": "Data Science Society (DSS) — Advancing Deep Learning, Quantum Neural Structures, and Open Science Computing.",
+    "footerCopyright": "© 2026 Data Science Society. All Rights Reserved.",
+    "contactEmail": "contact@datasciencesociety.org",
+    "socialGithub": "https://github.com/datasciencesociety",
+    "socialX": "https://x.com/datasciencesoc",
+    "socialDiscord": "https://discord.gg/datascience"
+  },
+  "bannerSettings": {
+    "bannerActive": true,
+    "badgeText": "⚡ HACKATHON 2026",
+    "bannerText": "Quantum Neural Systems Registration Live",
+    "subText": "Join 500+ researchers and build frontier multi-agent AI systems.",
+    "targetPage": "events.html",
+    "customUrl": "",
+    "ctaText": "Register Now →",
+    "shape": "bar-header",
+    "position": "top-left",
+    "animation": "slide-in",
+    "colorGradient": "amber-rose"
+  },
+  "heroSection": {
+    "heroTagline": "Advanced Research & Open Source Computing",
+    "heroTitle": "Architecting the Future of Frontier Intelligence.",
+    "heroSubtitle": "Data Science Society unites elite researchers, algorithmic engineers, and domain specialists to construct verifiable, decentralized artificial intelligence ecosystems.",
+    "primaryCtaText": "Apply for Membership",
+    "primaryCtaLink": "join.html",
+    "secondaryCtaText": "Explore Research",
+    "secondaryCtaLink": "research.html"
+  },
+  "pillars": {
+    "pillar1Title": "Academic Synergy",
+    "pillar1Desc": "Collaborative research cohorts bridging theoretical machine learning and scalable real-world implementations.",
+    "pillar2Title": "Decentralized AI",
+    "pillar2Desc": "Pioneering distributed neural architectures, verifiable compute paradigms, and federated learning protocols.",
+    "pillar3Title": "Open Access",
+    "pillar3Desc": "Commitment to 100% open-source datasets, preprints, algorithmic frameworks, and reproducibility standards."
+  },
+  "pageHeaders": {
+    "about": {
+      "title": "Pioneering the Frontiers of Data & Artificial Intelligence",
+      "desc": "The Data Science Society is an elite academic and engineering collective dedicated to advancing theoretical breakthroughs, decentralized architectures, and sovereign AI."
+    },
+    "research": {
+      "title": "Frontier AI & Machine Learning Research",
+      "desc": "Explore peer-reviewed preprints, neural architectures, and reproducible empirical benchmarks produced by our research labs."
+    },
+    "projects": {
+      "title": "Open Source Systems & Repositories",
+      "desc": "High-throughput machine learning frameworks, distributed compute engines, and verifiable tooling maintained by society fellows."
+    },
+    "blog": {
+      "title": "Society Dispatches & Technical Essays",
+      "desc": "Deep dives into quantum neural representations, mechanistic interpretability, and sovereign compute economics."
+    },
+    "events": {
+      "title": "Symposia, Hackathons & Technical Summits",
+      "desc": "Join our upcoming global hackathons, research symposiums, and peer-to-peer engineering workshops."
+    },
+    "resources": {
+      "title": "Learning Curricula & Open Access Tooling",
+      "desc": "Structured research roadmaps, compute grants, mathematical foundations, and curated reading lists for AI practitioners."
+    },
+    "join": {
+      "title": "Join the Research Society",
+      "desc": "Apply for Fellowship, Academic Membership, or Partner Cohorts to collaborate with elite practitioners."
+    },
+    "contact": {
+      "title": "Connect with Our Research Directors",
+      "desc": "Initiate academic partnerships, industry research sponsorships, or media inquiries with the Data Science Society."
+    }
+  },
+  "_updatedAt": "2026-08-23T16:35:00.000Z",
+  "collections": {
+    "blogs": [
+      {
+        "id": 1,
+        "tag": "DEEP LEARNING",
+        "author": "DR. AISHA VANCE",
+        "date": "DEC 2024",
+        "title": "Deciphering Vision Transformers (ViT)",
+        "excerpt": "An analysis of how self-attention mechanisms are replacing traditional convolution layers in computer vision architectures.",
+        "image": "https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=800&q=80",
+        "link": "https://arxiv.org/abs/2010.11929",
+        "fileUrl": "/uploads/vit_vision_transformers_notes.pdf",
+        "fileName": "vit_vision_transformers_notes.pdf",
+        "fileSize": "1.1 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 2,
+        "tag": "QUANTUM COMPUTING",
+        "author": "PROF. LIAM CHEN",
+        "date": "NOV 2024",
+        "title": "Introduction to Quantum Machine Learning",
+        "excerpt": "Exploring how quantum algorithms can accelerate training times for support vector machines and neural network kernels.",
+        "image": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80",
+        "link": "https://qiskit.org",
+        "fileUrl": "/uploads/quantum_ml_intro_guide.pdf",
+        "fileName": "quantum_ml_intro_guide.pdf",
+        "fileSize": "780 KB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 3,
+        "tag": "ROBOTICS",
+        "author": "ELENA ROSTOVA",
+        "date": "OCT 2024",
+        "title": "Self-Supervised Learning in Robotics",
+        "excerpt": "Discussing how physical simulation environments utilize contrastive representation learning to train robotic limbs.",
+        "image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80",
+        "link": "https://openai.com/research",
+        "fileUrl": "/uploads/robotics_self_supervised_learning.pdf",
+        "fileName": "robotics_self_supervised_learning.pdf",
+        "fileSize": "1.4 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 4,
+        "tag": "MECHANISTIC INTERPRETABILITY",
+        "author": "M. HAMZA REHMAN",
+        "date": "JAN 2025",
+        "title": "Probing Monosemantic Features in Large Language Models",
+        "excerpt": "Sparse autoencoders applied to middle residual streams reveal interpretable semantic directions and polysemanticity resolution.",
+        "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80",
+        "link": "https://transformer-circuits.pub",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      },
+      {
+        "id": 5,
+        "tag": "DISTRIBUTED SYSTEMS",
+        "author": "SYEDA ZAINAB FATIMA",
+        "date": "FEB 2025",
+        "title": "Zero-Redundancy Optimizer (ZeRO) in Practice",
+        "excerpt": "A deep dive into pipeline parallelism, tensor sharding, and memory optimization techniques for 70B+ parameter model training.",
+        "image": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80",
+        "link": "https://deepspeed.ai",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      }
+    ],
+    "papers": [
+      {
+        "id": 1,
+        "title": "Scaling Laws for Autoregressive Generative Models",
+        "authors": "H. Rehman, A. Vance, L. Chen",
+        "journal": "Journal of Neural Systems, Vol. 14, 2024",
+        "excerpt": "This paper formalizes the power-law relationship between parameter counts, dataset size, and compute budget in transformers.",
+        "link": "https://arxiv.org/abs/2001.08361",
+        "fileUrl": "/uploads/scaling_laws_autoregressive_preprint.pdf",
+        "fileName": "scaling_laws_autoregressive_preprint.pdf",
+        "fileSize": "1.8 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 2,
+        "title": "LiDAR Object Detection in Low-Visibility Conditions",
+        "authors": "M. Patel, H. Rehman",
+        "journal": "IEEE Transactions on Robotics, 2024",
+        "excerpt": "We present a novel voxel-based fusion algorithm combining multispectral imagery and sparse point clouds.",
+        "link": "https://ieeexplore.ieee.org",
+        "fileUrl": "/uploads/lidar_object_detection_multispectral.pdf",
+        "fileName": "lidar_object_detection_multispectral.pdf",
+        "fileSize": "3.2 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 3,
+        "title": "Quantum Kernels for High-Dimensional Classification",
+        "authors": "L. Chen, J. Smith",
+        "journal": "Quantum Science & Tech, 2024",
+        "excerpt": "Analyzing the Hilbert space dimensionality mapping of quantum states, proving exponential separation for task sets.",
+        "link": "https://arxiv.org",
+        "fileUrl": "/uploads/quantum_kernels_classification_manuscript.pdf",
+        "fileName": "quantum_kernels_classification_manuscript.pdf",
+        "fileSize": "950 KB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 4,
+        "title": "Decentralized Tensor Parallelism across Heterogeneous Edge Clusters",
+        "authors": "S. Z. Fatima, M. H. Rehman",
+        "journal": "NeurIPS Open Science Workshop, 2024",
+        "excerpt": "Fault-tolerant gradient synchronization protocols that dynamically adjust micro-batch schedules under asynchronous latency spikes.",
+        "link": "https://arxiv.org",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      }
+    ],
+    "events": [
+      {
+        "id": 1,
+        "title": "Quantum Computing & ML Workshop",
+        "date": "July 24, 2026",
+        "type": "Workshop",
+        "loc": "Virtual / Gather.town",
+        "desc": "Hands-on tutorials on programming quantum state circuits using Qiskit and integrating them into classic PyTorch pipelines.",
+        "link": "https://gather.town",
+        "fileUrl": "/uploads/quantum_computing_workshop_slides.pdf",
+        "fileName": "quantum_computing_workshop_slides.pdf",
+        "fileSize": "1.2 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 2,
+        "title": "Global AI Hackathon 2026",
+        "date": "Sept 12-14, 2026",
+        "type": "Hackathon",
+        "loc": "Geneva, Switzerland & Hybrid",
+        "desc": "A 48-hour competitive sprint focused on building AI agents, multimodal retrieval pipelines, and edge inference applications.",
+        "link": "https://hackathon.datasciencesociety.org",
+        "fileUrl": "/uploads/hackathon_2026_starter_pack.zip",
+        "fileName": "hackathon_2026_starter_pack.zip",
+        "fileSize": "8.4 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 3,
+        "title": "DSS Annual Symposium 2026",
+        "date": "Nov 05-07, 2026",
+        "type": "Conference",
+        "loc": "London, UK & Hybrid",
+        "desc": "Our annual research summit featuring peer-reviewed paper presentations, keynote speakers, and industry panel discussions.",
+        "link": "https://symposium.datasciencesociety.org",
+        "fileUrl": "/uploads/symposium_schedule_and_proceedings.pdf",
+        "fileName": "symposium_schedule_and_proceedings.pdf",
+        "fileSize": "2.9 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 4,
+        "title": "Deep Representation Learning Bootcamp",
+        "date": "Dec 18, 2026",
+        "type": "Bootcamp",
+        "loc": "Silicon Valley Campus & Live Stream",
+        "desc": "Intensive 3-day deep dive into self-attention, state-space models (Mamba), and multimodal embeddings.",
+        "link": "https://bootcamp.datasciencesociety.org",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      }
+    ],
+    "team": [
+      {
+        "id": 1,
+        "name": "M. Hamza Rehman",
+        "category": "executive",
+        "role": "PRESIDENT",
+        "funnyRole": "The Big Boss & Chai Lover",
+        "badge": "ALWAYS DRINKING CHAI",
+        "bio": "The Big Boss. Spends 90% of his time drinking chai and 10% telling others to do his work. Nobody really knows what his actual job is, but he looks very busy.",
+        "image": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80"
+      },
+      {
+        "id": 2,
+        "name": "Syeda Zainab Fatima",
+        "category": "executive",
+        "role": "VICE PRESIDENT",
+        "funnyRole": "The Real Boss & Ctrl+Z Expert",
+        "badge": "DOES ALL THE REAL WORK",
+        "bio": "The Real Boss. Does all the actual work while the President takes the credit. Queen of pressing Ctrl+Z when code breaks and fixing everyone's mistakes.",
+        "image": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80"
+      },
+      {
+        "id": 3,
+        "name": "Haris Bilal",
+        "category": "executive",
+        "role": "GENERAL SECRETARY",
+        "funnyRole": "Always On Mute",
+        "badge": "AFK IN EVERY MEETING",
+        "bio": "Attends all Zoom calls from his bed with mic muted. Holds the world record for saying \"Sorry, I was on mute\" every single time someone asks him a question.",
+        "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80"
+      },
+      {
+        "id": 4,
+        "name": "Bilal Ahmed",
+        "category": "director",
+        "role": "EVENT MANAGEMENT DIRECTOR",
+        "funnyRole": "Snack Master & Late Comers Legend",
+        "badge": "LATE TO HIS OWN EVENT",
+        "bio": "Super excited to plan events, but always arrives 30 minutes after his own event has started. Once booked a hall for the wrong month and blamed the calendar app.",
+        "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80"
+      },
+      {
+        "id": 5,
+        "name": "Ayesha Malik",
+        "category": "director",
+        "role": "PUBLIC RELATIONS DIRECTOR",
+        "funnyRole": "WhatsApp Group Spammer",
+        "badge": "50 UNREAD MESSAGES",
+        "bio": "Sends 50 rocket emojis for a simple meeting notice. Can turn a tiny typo into a major press release and tags @everyone for lost water bottles.",
+        "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=800&q=80"
+      },
+      {
+        "id": 6,
+        "name": "Zubair Khan",
+        "category": "director",
+        "role": "SOCIAL MEDIA DIRECTOR",
+        "funnyRole": "Reel Addict & Doomscroll Pro",
+        "badge": "SCROLLING 24/7",
+        "bio": "Supposed to post serious AI research updates, but gets distracted watching funny cat reels for 4 hours straight instead.",
+        "image": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80"
+      },
+      {
+        "id": 7,
+        "name": "Mahnoor Tariq",
+        "category": "director",
+        "role": "DECOR & VISUALS DIRECTOR",
+        "funnyRole": "Light Mode Hater",
+        "badge": "DARK MODE ONLY",
+        "bio": "Refuses to open any website that has a white background. Spent 3 hours moving a button 1 millimeter to the left and called it a hard day of work.",
+        "image": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80"
+      },
+      {
+        "id": 8,
+        "name": "The Event Crew",
+        "category": "subteam",
+        "role": "EVENT OPERATIONS SQUAD",
+        "funnyRole": "The Last Minute Squad",
+        "badge": "CHAIR SETUPS AT 11:59",
+        "bio": "Experts at setting up chairs and microphones 2 minutes before the chief guest arrives.",
+        "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80"
+      },
+      {
+        "id": 9,
+        "name": "The Web Crew",
+        "category": "subteam",
+        "role": "WEB DEVELOPMENT SQUAD",
+        "funnyRole": "The Copy-Paste Wizards",
+        "badge": "FIX 1 BUG, CREATE 5 NEW ONES",
+        "bio": "Fixes one small bug and accidentally breaks four other pages. Always say \"It worked fine on my laptop!\".",
+        "image": "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80"
+      }
+    ],
+    "projects": [
+      {
+        "id": 1,
+        "title": "DSS-Transformer-Core",
+        "type": "Core Library",
+        "desc": "A modular PyTorch implementation of Vision Transformers and State Space Models designed for edge device compilation.",
+        "stars": "1.4k",
+        "forks": "280",
+        "lang": "Python",
+        "link": "https://github.com/data-science-society/dss-transformer-core",
+        "fileUrl": "/uploads/dss_transformer_core_v1.zip",
+        "fileName": "dss_transformer_core_v1.zip",
+        "fileSize": "3.7 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 2,
+        "title": "Quantum-Kernel-Map",
+        "type": "Research Utility",
+        "desc": "A Python toolkit mapping high-dimensional classification boundaries on simulated quantum circuits.",
+        "stars": "340",
+        "forks": "45",
+        "lang": "Jupyter",
+        "link": "https://github.com/data-science-society/quantum-kernel-map",
+        "fileUrl": "/uploads/quantum_kernel_map_source.zip",
+        "fileName": "quantum_kernel_map_source.zip",
+        "fileSize": "1.9 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 3,
+        "title": "Robo-Learn-Gym",
+        "type": "Simulation",
+        "desc": "OpenAI Gym compatible physical environments for robot arms utilizing contrastive reinforcement setups.",
+        "stars": "980",
+        "forks": "120",
+        "lang": "C++ / Python",
+        "link": "https://github.com/data-science-society/robo-learn-gym",
+        "fileUrl": "/uploads/robo_learn_gym_simulation.zip",
+        "fileName": "robo_learn_gym_simulation.zip",
+        "fileSize": "6.2 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 4,
+        "title": "Verifiable-Inference-Engine",
+        "type": "Zero-Knowledge ML",
+        "desc": "Cryptographic zero-knowledge proof generator for verifying transformer neural network execution honesty.",
+        "stars": "720",
+        "forks": "95",
+        "lang": "Rust",
+        "link": "https://github.com/data-science-society/zk-ml-engine",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      }
+    ],
+    "resources": [
+      {
+        "id": 1,
+        "title": "Deep Learning Core Guide",
+        "type": "Core Documentation",
+        "desc": "Comprehensive mathematical descriptions of backpropagation, tensor layers, and transformer attention formulas.",
+        "length": "120 pages",
+        "link": "https://github.com/data-science-society/deep-learning-guide",
+        "fileUrl": "/uploads/deep_learning_core_handbook.pdf",
+        "fileName": "deep_learning_core_handbook.pdf",
+        "fileSize": "4.5 MB PDF",
+        "requiresAuth": false
+      },
+      {
+        "id": 2,
+        "title": "Quantum Kernels Handbooks",
+        "type": "Research Codebook",
+        "desc": "Ready-to-use notebook templates mapping variational parameters on circuit layers.",
+        "length": "8 notebooks",
+        "link": "https://colab.research.google.com",
+        "fileUrl": "/uploads/quantum_kernels_notebooks.zip",
+        "fileName": "quantum_kernels_notebooks.zip",
+        "fileSize": "2.1 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 3,
+        "title": "Sim-to-Real Reinforcement Grasp",
+        "type": "Framework Repository",
+        "desc": "C++ simulation codebooks to map motor control structures in physical environments.",
+        "length": "4.2k lines",
+        "link": "https://github.com/data-science-society/sim-to-real",
+        "fileUrl": "/uploads/sim_to_real_codebook.zip",
+        "fileName": "sim_to_real_codebook.zip",
+        "fileSize": "5.8 MB ZIP",
+        "requiresAuth": false
+      },
+      {
+        "id": 4,
+        "title": "Linear Algebra & Tensor Calculus for AI",
+        "type": "Mathematical Foundations",
+        "desc": "Rigorous treatment of SVD, spectral decomposition, Riemannian optimization, and automatic differentiation manifolds.",
+        "length": "85 pages",
+        "link": "https://github.com/data-science-society/math-foundations",
+        "fileUrl": "",
+        "fileName": "",
+        "fileSize": "",
+        "requiresAuth": false
+      }
+    ],
+    "stats": [
+      { "name": "Global Members", "value": "12k+" },
+      { "name": "Research Labs", "value": "45+" },
+      { "name": "Publications", "value": "120+" },
+      { "name": "Active Countries", "value": "85+" }
+    ]
+  },
+  "advertisement": {
+    "active": true,
+    "headline": "Accelerate Your AI Inference on HyperScale GPU Clusters",
+    "desc": "Sponsored by CloudCompute Labs. Experience sub-millisecond transformer inference with enterprise SLA.",
+    "sponsor": "CloudCompute Labs",
+    "btnText": "Claim Free GPU Credits",
+    "btnLink": "https://datasciencesociety.org"
+  },
+  "community": {
+    "proto1": "DSS forums and repositories welcome open source code contributions under strict Apache 2.0 or MIT licensing terms.",
+    "proto2": "Fellowship requests and compute resource allocation applications are peer-reviewed quarterly by our leadership board.",
+    "proto3": "All local university chapters coordinate summits following standard academic safety and validation guidelines."
+  }
+}

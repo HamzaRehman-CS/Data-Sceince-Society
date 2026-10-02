@@ -1,0 +1,37 @@
+{
+  "heroSection": {
+    "heroTagline": "Data Science Society · Pakistan",
+    "heroTitle": "Great minds.\nBetter together.",
+    "heroSubtitle": "A community for students who want to understand data, build useful things, and make a difference.",
+    "primaryCtaText": "Join the society",
+    "secondaryCtaText": "Meet DSS"
+  },
+  "theme": {
+    "accent": "#165dff", "sky": "#7ab8ff", "bg": "#ffffff", "surface": "#f5f8ff",
+    "ink": "#111c35", "muted": "#5e6a80", "deep": "#0b2d78", "line": "#e3e9f3",
+    "mode": "light", "fontHeading": "'Inter', sans-serif", "fontBody": "'Inter', sans-serif", "canvasOpacity": "80"
+  },
+  "pillars": {
+    "pillar1Title": "Find your starting point", "pillar1Desc": "Practical resources for the concepts you want to understand.",
+    "pillar2Title": "Make something real", "pillar2Desc": "Open projects, shared experiments, and room for your ideas.",
+    "pillar3Title": "Meet your people", "pillar3Desc": "Students across Pakistan, learning with and from each other."
+  },
+  "portal": {
+    "studentDescription": "Your learning, saved resources, and upcoming events.",
+    "memberDescription": "Your society membership, projects, and contribution opportunities.",
+    "ambassadorDescription": "Your campus activities, applications, and community impact.",
+    "loginHeading": "Good to see you.", "loginDescription": "Sign in to continue where you left off."
+  },
+  "pageHeaders": {
+    "about": {"title":"Built around people.","desc":"We’re making data science more accessible to students across Pakistan. Through shared learning, practical work, and people who care."},
+    "projects":{"title":"Made to be explored.","desc":"Real code. Open ideas. Find a project and see what you can build."},
+    "research":{"title":"Room for a new perspective.","desc":"Papers, experiments, and the questions that move our understanding forward."},
+    "events":{"title":"See you there.","desc":"Workshops, conversations, and challenges. Find your next reason to get involved."},
+    "resources":{"title":"Make room for learning.","desc":"Your next useful idea could be one notebook, guide, or good read away."},
+    "blog":{"title":"The society journal.","desc":"Ideas, discoveries, and notes from the people behind the work."},
+    "community":{"title":"Closer than you think.","desc":"A community across campuses. A place to learn together, wherever you start."},
+    "join":{"title":"Your next chapter.","desc":"Learn as a student. Contribute as a member. Lead as an ambassador."},
+    "ambassador":{"title":"Start something on your campus.","desc":"Connect students with opportunities. Build a community where you are."},
+    "contact":{"title":"Let’s talk.","desc":"Have a question or an idea? We’d like to hear it."}
+  }
+}
