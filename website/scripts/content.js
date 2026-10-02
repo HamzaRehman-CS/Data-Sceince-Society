@@ -62,7 +62,7 @@
     }
     window.renderSiteBanners?.(content);
     document.querySelectorAll('img').forEach(el => { el.decoding = 'async'; if (!el.closest('header')) el.loading = 'lazy'; });
-    document.querySelectorAll('a[href="login.html"]').forEach(el => { if (DSS.user) { el.href = DSS.user.role === 'admin' ? 'admin.html' : 'member-dashboard.html'; (el.querySelector('span') || el).textContent = 'Dashboard'; } });
+    document.querySelectorAll('a[href="login.html"]').forEach(el => { if (DSS.user) { el.href = 'member-dashboard.html'; (el.querySelector('span') || el).textContent = 'Dashboard'; } });
     document.dispatchEvent(new CustomEvent('dss:rendered'));
   };
   async function sync() {

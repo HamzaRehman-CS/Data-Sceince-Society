@@ -83,6 +83,10 @@
       target.dispatchEvent(new Event('input',{bubbles:true}));
     } catch(error){toast(error.message,true);} finally {input.disabled=false;}
   });
+  function adminLogin() {
+    $('#app').innerHTML = `<main class="auth-form" style="min-height:100vh"><div class="auth-card">${brand}<p class="eyebrow">Website administration</p><h1>Administrator sign in</h1><p class="muted">Enter your administrator ID and password.</p><form id="admin-login-form" class="fields">${field('username','',{required:true,label:'Administrator ID'})}${field('password','',{type:'password',required:true,current:true,label:'Password'})}<p class="feedback" role="alert"></p><button class="btn primary" type="submit">Sign in</button></form><p style="margin-top:24px"><a href="/">Back to the website</a></p></div></main>`;
+    $('#admin-login-form').onsubmit = async event => { event.preventDefault(); const form=event.target,button=form.querySelector('button'); button.disabled=true; try { await api('/api/admin/login','POST',values(form)); location.replace('/admin'); } catch(error) { form.querySelector('.feedback').textContent=error.message; } finally { button.disabled=false; } };
+  }
   function login() {
     if (auth.authProvider === 'workos' || auth.authProvider === 'unconfigured') {
       const available = auth.authProvider === 'workos';
@@ -134,7 +138,7 @@
       main.innerHTML = intro('Brand & settings', 'Manage your identity, home page, announcement and visual theme. Page-specific details can also be changed in the page editor.') + `<form id="settings-form" class="grid">${groups.map(group => `<section class="panel"><h2>${pretty(group)}</h2><div class="fields">${Object.entries(model.draft[group] || {}).filter(([key]) => !['shape', 'position', 'animation', 'colorGradient', 'mode'].includes(key)).map(([key, value]) => field(key, value, key === 'mode' ? { choices: ['light', 'dark'] } : {} ).replace(/name="/g, `data-group="${group}" name="`)).join('')}</div></section>`).join('')}</form><p class="note">Edits remain in your draft until you publish. The lightweight logo animation can be enabled or hidden above. Banner controls are in the dedicated Banners section.</p>`;
       $('#settings-form').oninput = event => { const input = event.target; if(!input.dataset.group)return; model.draft[input.dataset.group][input.name] = input.type === 'checkbox' ? input.checked : input.value; applyPortalTheme(model.draft.theme); markDirty(); }; $('#settings-form').onsubmit = e => e.preventDefault();
     }
-    if (active === 'account') main.innerHTML = intro('Account & security', 'Manage the credentials for your society workspace.') + `<section class="panel account-panel"><div class="account-avatar">${h(auth.user.name.charAt(0))}</div><h2>${h(auth.user.name)}</h2><p class="muted">${h(auth.user.username || auth.user.email)}</p><p class="muted">Password changes take effect immediately and sign out other active sessions.</p>${btn('Change password','password','','primary')}</section>`;
+    if (active === 'account') main.innerHTML = intro('Account & security', 'Manage the credentials for your society workspace.') + `<section class="panel account-panel"><div class="account-avatar">${h(auth.user.name.charAt(0))}</div><h2>${h(auth.user.name)}</h2><p class="muted">${h(auth.user.username || auth.user.email)}</p>${auth.privateAdmin?'<p class="muted">Administrator credentials are managed by the website owner. Sessions expire after one hour.</p>':'<p class="muted">Password changes take effect immediately and sign out other active sessions.</p>'+btn('Change password','password','','primary')}</section>`;
     if (active === 'members') {
       const nonAdmins = overview.users.filter(u => u.role !== 'admin');
       const memberships = nonAdmins.filter(u => u.membershipApplication?.status === 'pending');
@@ -230,7 +234,7 @@
     const select = event.target.closest('[data-select-element]'); if(select){pageEditor.select(select.dataset.selectElement);return;}
     const button = event.target.closest('[data-action]'); if (!button) return; const action = button.dataset.action; button.disabled = true;
     try {
-      if (action === 'logout') { if (dirty && !confirm('Leave without saving your draft changes?')) return; const result = await api('/api/auth/logout', 'POST', {}); dirty = false; location.href = result.logoutUrl || 'login.html'; }
+      if (action === 'logout') { if (dirty && !confirm('Leave without saving your draft changes?')) return; const result = await api(auth.privateAdmin ? '/api/admin/logout' : '/api/auth/logout', 'POST', {}); dirty = false; location.href = result.logoutUrl || 'login.html'; }
       if (action === 'save') await saveDraft();
       if (action === 'publish') { await saveDraft(); await api('/api/admin/publish', 'POST', { revision: model.revision }); model = await api('/api/admin/content'); $('#save-state').textContent = 'All changes are live'; toast('Published. Your website has updated for visitors.'); }
       if (action === 'tab') { active = button.dataset.value; renderAdmin(); }
@@ -275,6 +279,7 @@
     try {
       auth = await api('/api/auth/me'); const kind = document.body.dataset.portal;
       if (kind === 'login') { auth.site=await api('/api/content'); applyPortalTheme(auth.site.theme); updateBrand(auth.site);login(); return; }
+      if (kind === 'admin' && (!auth.user || auth.user.role !== 'admin' || (auth.privateAdminConfigured && !auth.privateAdmin))) { adminLogin(); return; }
       if (!auth.user) { location.replace('login.html'); return; }
       if (kind === 'admin') { if (auth.user.role !== 'admin') { location.replace('member-dashboard.html'); return; } [model, overview] = await Promise.all([api('/api/admin/content'), api('/api/admin/overview')]); applyPortalTheme(model.draft.theme); updateBrand(model.draft); adminShell(); }
       else { await loadMember(); let pendingRefresh=false;const updates=new EventSource('/api/changes');const syncMember=async()=>{if(document.hidden||$('#editor-dialog')?.open||document.activeElement?.matches('input,textarea,select')){pendingRefresh=true;return;}pendingRefresh=false;try{await loadMember();}catch(error){toast(error.message,true);}};updates.onmessage=syncMember;document.addEventListener('close',()=>{if(pendingRefresh)syncMember();},true);document.addEventListener('focusout',()=>{if(pendingRefresh)setTimeout(syncMember,0);});window.addEventListener('pagehide',()=>updates.close());document.addEventListener('visibilitychange', async () => { if (!document.hidden && !$('#editor-dialog')?.open) { try { await loadMember(); } catch (error) { toast(error.message, true); } } }); }

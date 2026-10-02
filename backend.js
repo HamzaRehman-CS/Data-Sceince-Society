@@ -3,6 +3,7 @@ const http = require('node:http'), fs = require('node:fs'), path = require('node
 const fsp = fs.promises, scrypt = require('node:util').promisify(crypto.scrypt), { gzipSync } = require('node:zlib');
 const ROOT = __dirname, DATA = process.env.DSS_DATA_DIR || path.join(process.env.VERCEL ? require('node:os').tmpdir() : ROOT, '.private');
 const auth = require('./lib/workos-auth').createAuth();
+const privateAdmin = require('./lib/admin-auth').createAdminAuth();
 const storage = require('./lib/storage').createStorage();
 const { committedResponse } = require('./lib/committed-response');
 fs.mkdirSync(DATA, { recursive: true });
@@ -158,13 +159,16 @@ async function hash(password) {
 async function verify(password, stored) { const [salt, key] = stored.split(':'); return crypto.timingSafeEqual(Buffer.from(key, 'hex'), await scrypt(String(password).slice(0, 128), salt, 64)); }
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 function currentUser(req) {
+  const administrator = privateAdmin.identity(db, req); if (administrator) return administrator;
   if (auth.enabled) return req.authUser || null;
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return null;
   const cookie = /(?:^|;\s*)dss_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];
   const session = cookie && db.sessions.find(s => s.token === digest(cookie) && s.expires > Date.now()); return session ? db.users.find(u => u.id === session.userId) : null;
 }
 function authorize(req, role) {
   const user = currentUser(req); if (!user) fail(401, 'Please sign in.');
   if (role === 'admin' && (user.role !== 'admin' || user.status !== 'approved')) fail(403, 'Administrator access required.');
+  if (role === 'admin' && (auth.enabled || process.env.VERCEL) && !privateAdmin.identity(db, req)) fail(403, 'Use the private administrator sign-in.');
   if (role === 'approved' && user.status !== 'approved') fail(403, 'Your application must be approved first.'); return user;
 }
 function sessionCookie(res, value, clear = false) { res.setHeader('Set-Cookie', `dss_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${clear ? 0 : 604800}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`); }
@@ -201,7 +205,14 @@ async function api(req, res, url) {
     if ((origin && origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') fail(403, 'Request origin is not allowed.');
     if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Use application/json.');
   }
-  if (route === '/api/auth/me' && method === 'GET') return json(res, { user: currentUser(req) ? publicUser(currentUser(req)) : null, setupRequired: !auth.enabled && !process.env.VERCEL && !db.users.some(u => u.role === 'admin'), authProvider: auth.enabled ? 'workos' : process.env.VERCEL ? 'unconfigured' : 'local' });
+  if (route === '/api/auth/me' && method === 'GET') return json(res, { user: currentUser(req) ? publicUser(currentUser(req)) : null, privateAdmin: !!privateAdmin.identity(db, req), privateAdminConfigured: privateAdmin.enabled, setupRequired: !auth.enabled && !process.env.VERCEL && !db.users.some(u => u.role === 'admin'), authProvider: auth.enabled ? 'workos' : process.env.VERCEL ? 'unconfigured' : 'local' });
+  if (route === '/api/admin/login' && method === 'POST') {
+    const input = await body(req), result = await mutate(() => privateAdmin.signIn(db, req, res, input));
+    return json(res, result.user ? { user: publicUser(result.user) } : { error: result.error }, result.status);
+  }
+  if (route === '/api/admin/logout' && method === 'POST') {
+    await mutate(() => privateAdmin.signOut(db, req, res)); return json(res, { success: true, logoutUrl: '/admin' });
+  }
   if ((auth.enabled || process.env.VERCEL) && route.startsWith('/api/auth/') && !['/api/auth/me','/api/auth/logout'].includes(route)) fail(400, 'Use the secure sign-in page to manage your account.');
   if (route === '/api/auth/setup' && method === 'POST') {
     rateLimit(req, 'setup'); const input = await body(req), password = await hash(input.password);
@@ -227,11 +238,13 @@ async function api(req, res, url) {
     await mutate(() => newSession(user, res)); return json(res, { user: publicUser(user) });
   }
   if (route === '/api/auth/logout' && method === 'POST') {
+    if (privateAdmin.identity(db, req)) { await mutate(() => privateAdmin.signOut(db, req, res)); return json(res, { success: true, logoutUrl: '/admin' }); }
     if (auth.enabled) return json(res, { success: true, logoutUrl: await auth.logout(req, res) });
     const cookie = /(?:^|;\s*)dss_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];
     await mutate(() => { db.sessions = db.sessions.filter(s => s.token !== digest(cookie || '')); }); sessionCookie(res, '', true); return json(res, { success: true });
   }
   if (route === '/api/auth/password' && method === 'POST') {
+    if (privateAdmin.identity(db, req)) fail(400, 'Administrator credentials are managed by the website owner.');
     rateLimit(req, 'password'); const user = authorize(req), input = await body(req);
     if (!await verify(input.currentPassword, user.password)) fail(400, 'Current password is incorrect.'); const password = await hash(input.password);
     await mutate(() => { user.password = password; db.sessions = db.sessions.filter(s => s.userId !== user.id); newSession(user, res); }); return json(res, { success: true });
@@ -380,7 +393,7 @@ const MIME = { '.woff2':'font/woff2', '.html': 'text/html; charset=utf-8', '.js'
 async function serve(req, res, url) {
   let route; try { route = decodeURIComponent(url.pathname); } catch { fail(400, 'Invalid URL.'); }
   if (route === '/' || route === '') route = '/index.html';
-  if (route === '/admin-login.html') { res.writeHead(302, { Location: '/login.html' }); return res.end(); }
+  if (['/admin.html','/admin/','/admin-login.html','/build.html'].includes(route)) { res.writeHead(302, { Location: '/admin', 'Cache-Control': 'no-store' }); return res.end(); }
   if (!path.extname(route)) route += '.html'; let file;
   if (route.startsWith('/uploads/')) {
     const name = path.basename(route); if (route !== '/uploads/' + name) fail(403, 'Forbidden.');

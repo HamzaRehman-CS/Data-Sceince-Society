@@ -9,4 +9,5 @@ playwright-report/
 .env.*
 !.env.workos.example
 dist/
+public/
 .vercel/
