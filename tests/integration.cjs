@@ -23,7 +23,8 @@ test('accounts, CMS publishing, permissions, files, community workflows and rest
     await start(); const admin = client(), student = client(), ambassador = client(), guest = client();
     assert.equal((await guest.request('/api/admin/overview')).status, 401);
     for (const file of ['/server.js','/backend.js','/sanity-data.json','/.private/database.json','/studio/studio-app.js','/dist/sanity-data.json','/website/design-defaults.json']) assert.ok([302,404].includes((await guest.request(file)).status), file);
-    for(const route of ['/','/about.html','/admin','/build','/admin/editor.js','/website/scripts/background.js'])assert.equal((await guest.request(route)).status,200,route);
+    for(const route of ['/','/about.html','/admin','/admin/editor.js','/website/scripts/background.js'])assert.equal((await guest.request(route)).status,200,route);
+    assert.equal((await guest.request('/build')).status,404);
     assert.equal((await guest.request('/api/content','POST',{})).status,404);
     assert.equal((await admin.request('/api/auth/setup','POST',{ token: setup, name: 'Site Owner', email: 'owner@example.test', password: 'Owner-password-123' })).status,200);
     assert.equal((await guest.request('/api/auth/setup','POST',{ token: setup, email:'second@example.test', password:'Password-123' })).status,403);
@@ -45,7 +46,7 @@ test('accounts, CMS publishing, permissions, files, community workflows and rest
     const cabinetMember = (await student.request('/api/member')).value.user;
     assert.equal(cabinetMember.cabinetApplication.status,'approved');
     assert.equal(cabinetMember.cabinetPosition,'Secretary');
-    assert.equal(cabinetMember.role,'student');
+    assert.equal(cabinetMember.role,'member');
     assert.equal((await student.request('/api/admin/overview')).status,403);
     let model = (await admin.request('/api/admin/content')).value;
     assert.ok(model.draft.collections.team[0].bio.includes('Leads the society'));

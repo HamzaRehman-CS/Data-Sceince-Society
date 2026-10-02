@@ -35,7 +35,7 @@ test('the /admin password flow protects real administration APIs and revokes ses
   await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error('Test server did not start')),15000);child.stdout.on('data',chunk=>{output+=chunk;const match=/DSS website: (http:\/\/localhost:\d+)/.exec(output);if(match){base=match[1];clearTimeout(timer);resolve();}});child.once('error',reject);child.once('exit',code=>{if(code)reject(new Error('Server exited '+code));});});
   const request=async(route,method='GET',input,cookie='',origin=base)=>fetch(base+route,{method,headers:{Cookie:cookie,...(input?{'Content-Type':'application/json',Origin:origin}:{})},body:input?JSON.stringify(input):undefined,redirect:'manual'});
   assert.equal((await request('/admin')).status,200);
-  const legacy=await request('/admin.html');assert.equal(legacy.status,302);assert.equal(legacy.headers.get('location'),'/admin');
+  for(const legacy of ['/admin.html','/admin/','/admin-login.html','/admin/index.html','/build','/build.html','/private-admin.html'])assert.equal((await request(legacy)).status,404,legacy);
   assert.equal((await request('/api/admin/content')).status,401);
   assert.equal((await request('/api/admin/login','POST',{username:'owner',password},'','https://evil.example')).status,403);
   assert.equal((await request('/api/admin/login','POST',{username:'owner',password:'wrong'})).status,401);

@@ -6,6 +6,7 @@ const auth = require('./lib/workos-auth').createAuth();
 const privateAdmin = require('./lib/admin-auth').createAdminAuth();
 const storage = require('./lib/storage').createStorage();
 const { committedResponse } = require('./lib/committed-response');
+const {normalizeContent,adminLink}=require('./lib/workspace-config');
 fs.mkdirSync(DATA, { recursive: true });
 const DB = path.join(DATA, 'database.json'), clone = v => structuredClone(v);
 const seed = JSON.parse(fs.readFileSync(path.join(ROOT, 'website/content-seed.json'), 'utf8'));
@@ -81,6 +82,7 @@ function upgradeVisual(content) {
   content._visualVersion=4;
 }
 upgradeVisual(db.content);upgradeVisual(db.draft);
+normalizeContent(db.content);normalizeContent(db.draft);
 db.contributions ||= [];
 for(const user of db.users)if(user.role==='student'&&user.status==='pending')user.role='member';
 if (!db.users.some(u => u.role === 'admin') && process.env.DSS_MANUAL_SETUP !== '1' && !auth.enabled && !process.env.VERCEL && process.env.NODE_ENV !== 'production') {
@@ -98,7 +100,7 @@ let queue = Promise.resolve();
 function mutate(fn) {
   const run = queue.then(async () => {
     const before = clone(db);
-    try { const value = await fn(); if (process.env.VERCEL && !storage) fail(503, 'Persistent database is not configured.'); if (storage) await storage.save(db); else { await fsp.writeFile(DB + '.tmp', JSON.stringify(db, null, 2), { mode: 0o600 }); await fsp.rename(DB + '.tmp', DB); } return value; }
+    try { const value = await fn(); db.stateRevision=(db.stateRevision||0)+1; if (process.env.VERCEL && !storage) fail(503, 'Persistent database is not configured.'); if (storage) await storage.save(db); else { await fsp.writeFile(DB + '.tmp', JSON.stringify(db, null, 2), { mode: 0o600 }); await fsp.rename(DB + '.tmp', DB); } return value; }
     catch (error) { db = before; throw error; }
   }); queue = run.catch(() => {}); return run;
 }
@@ -134,6 +136,8 @@ function validateContent(content) {
       if (!item || !['string', 'number'].includes(typeof item.id) || ids.has(String(item.id))) fail(400, 'Every record needs a unique ID.'); ids.add(String(item.id));
     }
   }
+  if(content.collections.navigation.some(item=>adminLink(item.link)))fail(400,'Administrator access is available only by entering /admin directly.');
+  if(content.portal && Object.entries(content.portal).some(([key,value])=>key.endsWith('Enabled')?typeof value!=='boolean':typeof value!=='string'||value.length>2000))fail(400,'Use text and on/off values for workspace settings.');
   function visit(value, depth = 0) {
     if (depth > 12) fail(400, 'Content is too deeply nested.'); if (!value || typeof value !== 'object') return;
     for (const [key, child] of Object.entries(value)) {
@@ -176,22 +180,25 @@ function newSession(user, res) { const value = crypto.randomBytes(32).toString('
 function audit(user, action) { db.audit.unshift({ id: crypto.randomUUID(), actor: user.email, action, date: new Date().toISOString() }); db.audit = db.audit.slice(0, 500); }
 const limits = new Map();
 function rateLimit(req, scope, maximum = 12) {
-  const key = scope + req.socket.remoteAddress, now = Date.now();
+  const key = scope + (process.env.VERCEL?req.headers['x-vercel-forwarded-for']||req.socket.remoteAddress:req.socket.remoteAddress), now = Date.now();
   if (limits.size > 5000) for (const [k, v] of limits) if (v.until < now) limits.delete(k);
   let entry = limits.get(key); if (!entry || entry.until < now) { entry = { count: 0, until: now + 900000 }; limits.set(key, entry); }
   if (++entry.count > maximum) fail(429, 'Too many attempts. Please try again in 15 minutes.');
 }
 async function body(req) {
-  let size = 0; const chunks = []; for await (const chunk of req) { size += chunk.length; if (size > 15 * 1024 * 1024) fail(413, 'Maximum request size is 15 MB.'); chunks.push(chunk); }
-  try { return JSON.parse(Buffer.concat(chunks).toString()); } catch { fail(400, 'Invalid JSON request.'); }
+  const maximum=req.url.split('?')[0]==='/api/upload-file'?15*1024*1024:256*1024;
+  let size = 0; const chunks = []; for await (const chunk of req) { size += chunk.length; if (size > maximum) fail(413, 'This request is too large.'); chunks.push(chunk); }
+  try { const data=JSON.parse(Buffer.concat(chunks).toString());if(!data||typeof data!=='object'||Array.isArray(data))fail(400,'Use a JSON object.');return data; } catch { fail(400, 'Invalid JSON request.'); }
 }
 function json(res, data, code = 200) { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); }
 function visibleContent(user) {
   const content = clone(db.content);
+  const workspaceRole=user?.cabinetPosition?'cabinet':user?.role;
+  content.collections.announcements=content.collections.announcements.filter(item=>!item.audience||item.audience==='all'?item.requiresAuth===false||user?.status==='approved':user?.status==='approved'&&[user.role,workspaceRole].includes(item.audience));
   if(!['admin','member','ambassador'].includes(user?.role)||user?.status!=='approved')content.collections.opportunities=[];
   if (user?.status !== 'approved') for (const key of collections) content.collections[key] = content.collections[key].map(record => {
     if (record.requiresAuth === false || ['team', 'stats'].includes(key)) return record;
-    const { link, fileUrl, fileName, ...safe } = record; return safe;
+    const { link, fileUrl, fileName, body, content, privateNotes, ...safe } = record; return safe;
   }); return { ...content, _revision: db.publishedRevision };
 }
 const streams = new Set();
@@ -205,7 +212,13 @@ async function api(req, res, url) {
     if ((origin && origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') fail(403, 'Request origin is not allowed.');
     if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Use application/json.');
   }
+  if(route.startsWith('/api/member/')&&!['GET','HEAD'].includes(method)&&currentUser(req)){
+    const user=currentUser(req);rateLimit(req,'member:'+user.id,60);
+    const permitted=await mutate(()=>{const now=Date.now();db.memberLimits=(db.memberLimits||[]).filter(x=>x.until>now);let entry=db.memberLimits.find(x=>x.userId===user.id);if(!entry){entry={userId:user.id,count:0,until:now+900000};db.memberLimits.push(entry);}if(entry.count>=60)return false;entry.count++;return true;});
+    if(!permitted)return json(res,{error:'Too many updates. Please try again in 15 minutes.'},429);
+  }
   if (route === '/api/auth/me' && method === 'GET') return json(res, { user: currentUser(req) ? publicUser(currentUser(req)) : null, privateAdmin: !!privateAdmin.identity(db, req), privateAdminConfigured: privateAdmin.enabled, setupRequired: !auth.enabled && !process.env.VERCEL && !db.users.some(u => u.role === 'admin'), authProvider: auth.enabled ? 'workos' : process.env.VERCEL ? 'unconfigured' : 'local' });
+  if(route==='/api/revision'&&method==='GET')return json(res,{publishedRevision:db.publishedRevision,stateRevision:currentUser(req)?db.stateRevision||0:undefined});
   if (route === '/api/admin/login' && method === 'POST') {
     const input = await body(req), result = await mutate(() => privateAdmin.signIn(db, req, res, input));
     return json(res, result.user ? { user: publicUser(result.user) } : { error: result.error }, result.status);
@@ -239,7 +252,7 @@ async function api(req, res, url) {
   }
   if (route === '/api/auth/logout' && method === 'POST') {
     if (privateAdmin.identity(db, req)) { await mutate(() => privateAdmin.signOut(db, req, res)); return json(res, { success: true, logoutUrl: '/admin' }); }
-    if (auth.enabled) return json(res, { success: true, logoutUrl: await auth.logout(req, res) });
+    if (auth.enabled) { const logoutUrl=await mutate(()=>auth.logout(req,res,db));return json(res,{success:true,logoutUrl}); }
     const cookie = /(?:^|;\s*)dss_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];
     await mutate(() => { db.sessions = db.sessions.filter(s => s.token !== digest(cookie || '')); }); sessionCookie(res, '', true); return json(res, { success: true });
   }
@@ -287,12 +300,13 @@ async function api(req, res, url) {
       const user = db.users.find(u => u.id === input.id); if (!user) fail(404, 'Account not found.'); if (user.role === 'admin') fail(400, 'Administrator accounts cannot be changed here.');
       if (!['pending', 'approved', 'rejected', 'suspended'].includes(input.status) || !['student', 'member', 'ambassador'].includes(input.role)) fail(400, 'Invalid role or status.');
       Object.assign(user, { status: input.status, role: input.role, reviewNote: clean(input.reviewNote), reviewedAt: new Date().toISOString() }); audit(admin, `Updated account ${user.email}: ${user.role}, ${user.status}`);
+      if(typeof input.cabinetPosition==='string')user.cabinetPosition=clean(input.cabinetPosition,100);
       if (user.cabinetApplication?.status === 'pending' && input.cabinetDecision) {
         if (!['approved','rejected'].includes(input.cabinetDecision)) fail(400, 'Choose a valid cabinet decision.');
         user.cabinetApplication.status = input.cabinetDecision;
         user.cabinetApplication.reviewNote = clean(input.reviewNote);
         user.cabinetApplication.reviewedAt = new Date().toISOString();
-        if (input.cabinetDecision === 'approved') user.cabinetPosition = user.cabinetApplication.position;
+        if (input.cabinetDecision === 'approved') {user.cabinetPosition = user.cabinetApplication.position;if(user.role==='student')user.role='member';}
       }
       if (user.ambassadorApplication?.status === 'pending' && input.applicationDecision) {
         if (!['approved','rejected'].includes(input.applicationDecision)) fail(400, 'Choose a valid application decision.');
@@ -309,7 +323,15 @@ async function api(req, res, url) {
   }
   if (route === '/api/contact' && method === 'POST') {
     rateLimit(req, 'contact'); const input = await body(req), inquiry = { id: crypto.randomUUID(), name: clean(input.name, 100), email: email(input.email), message: clean(input.message, 10000), status: 'new', date: new Date().toISOString() };
-    if (!inquiry.name || !inquiry.message) fail(400, 'Please complete all fields.'); await mutate(() => db.inquiries.unshift(inquiry)); return json(res, { success: true }, 201);
+    if (!inquiry.name || !inquiry.message) fail(400, 'Please complete all fields.');
+    if(input.website)return json(res,{success:true},201);
+    const accepted=await mutate(()=>{
+      const now=Date.now(),ip=process.env.VERCEL?req.headers['x-vercel-forwarded-for']||req.socket.remoteAddress:req.socket.remoteAddress,key=digest('contact:'+ip);
+      db.contactLimits=(db.contactLimits||[]).filter(x=>x.until>now).slice(-4096);
+      let limit=db.contactLimits.find(x=>x.key===key);if(!limit){limit={key,count:0,until:now+900000};db.contactLimits.push(limit);}if(limit.count>=12)return false;
+      limit.count++;if(db.inquiries.some(i=>i.email===inquiry.email&&i.message===inquiry.message&&Date.parse(i.date)>now-600000))return false;
+      db.inquiries.unshift(inquiry);return true;
+    });return json(res,accepted?{success:true}:{error:'Please wait before sending another message.'},accepted?201:429);
   }
   if (route === '/api/admin/inquiry' && method === 'PATCH') {
     const user = authorize(req, 'admin'), input = await body(req);
@@ -393,7 +415,8 @@ const MIME = { '.woff2':'font/woff2', '.html': 'text/html; charset=utf-8', '.js'
 async function serve(req, res, url) {
   let route; try { route = decodeURIComponent(url.pathname); } catch { fail(400, 'Invalid URL.'); }
   if (route === '/' || route === '') route = '/index.html';
-  if (['/admin.html','/admin/','/admin-login.html','/build.html'].includes(route)) { res.writeHead(302, { Location: '/admin', 'Cache-Control': 'no-store' }); return res.end(); }
+  if(['/admin.html','/admin/','/admin-login.html','/build','/build.html','/admin/index.html'].includes(route))fail(404,'Page not found.');
+  if(route==='/admin'){route='/private-admin.html';res.setHeader('Cache-Control','no-store');}
   if (!path.extname(route)) route += '.html'; let file;
   if (route.startsWith('/uploads/')) {
     const name = path.basename(route); if (route !== '/uploads/' + name) fail(403, 'Forbidden.');
@@ -410,7 +433,8 @@ async function serve(req, res, url) {
     if (!/\.(png|jpe?g|gif|webp)$/i.test(name)) res.setHeader('Content-Disposition', 'attachment');
   } else {
     const routes=Object.fromEntries(pages.map(p=>['/'+p+'.html',(['login','member-dashboard'].includes(p)?'accounts/':'website/pages/')+p+'.html']));
-    Object.assign(routes,{'/admin.html':'admin/index.html','/build.html':'admin/index.html','/app.js':'website/scripts/app.js','/content.js':'website/scripts/content.js','/style.css':'website/styles/base.css','/portal.js':'admin/portal.js','/portal.css':'admin/portal.css'});
+    Object.assign(routes,{'/private-admin.html':'admin/index.html','/app.js':'website/scripts/app.js','/content.js':'website/scripts/content.js','/style.css':'website/styles/base.css','/portal.js':'admin/portal.js','/portal.css':'admin/portal.css'});
+    if(url.pathname!=='/admin')delete routes['/private-admin.html'];
     for(const asset of ['assets/dss-mark.svg','assets/fonts/inter-latin.woff2','accounts/workspace.css','website/styles/blueprint.css','website/styles/page-motion.css','website/scripts/page-motion.js','website/scripts/catalog.js','website/scripts/data-surface.js','assets/tailwind.css','assets/lucide.js','website/styles/society.css','website/styles/identity.css','website/scripts/identity.js','website/scripts/background.js','website/scripts/banners.js','website/scripts/society.js','website/scripts/editor-bridge.js','admin/editor.js','admin/banners.js'])routes['/'+asset]=asset;
     if(!routes[route])fail(404,'Page not found.');file=path.join(ROOT,routes[route]);
   }
@@ -423,6 +447,9 @@ async function serve(req, res, url) {
 }
 const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('X-Frame-Options', 'SAMEORIGIN'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'");
+  if(process.env.VERCEL)res.setHeader('Strict-Transport-Security','max-age=31536000');
   try {
     const url = new URL(req.url, 'http://localhost');
     const handle = async () => {
@@ -440,8 +467,8 @@ const server = http.createServer(async (req, res) => {
           return user;
         })) return;
       }
-      if (auth.enabled && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/'))) {
-        const identity = await auth.identity(req, res);
+      if (auth.enabled && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/')) && !['/api/auth/logout','/api/admin/login','/api/admin/logout'].includes(url.pathname)&&!privateAdmin.identity(db,req)) {
+        const identity = await auth.identity(req, res,db);
         req.authUser = identity ? db.users.find(u => u.workosId === identity.id) : null;
         if (req.authUser?.role === 'admin' && !auth.admins.has(identity.email.toLowerCase())) req.authUser = null;
       }
@@ -452,7 +479,7 @@ const server = http.createServer(async (req, res) => {
     if (storage && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/') || url.pathname === '/callback')) {
       await committedResponse(res, async () => {
         let before;
-        try { await storage.run(db, async state => { before = clone(state); db = state; db.contributions ||= []; await handle(); }); }
+        try { await storage.run(db, async state => { before = clone(state); db = state; db.contributions ||= [];normalizeContent(db.content);normalizeContent(db.draft); await handle(); },{readOnly:['GET','HEAD'].includes(req.method)&&url.pathname!=='/callback'}); }
         catch (error) { if (before) db = before; throw error; }
       });
     }

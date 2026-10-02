@@ -50,3 +50,9 @@ test('commit failure sends no success response or session cookie; successful str
   res.write('next');
   assert.deepEqual(res.sent, [['head', 200], ['write', 'initial'], ['write', 'next']]);
 });
+test('read requests use one state query without a write lock and reject accidental writes',async()=>{
+ const pool=fakePool(),original=pool.connect.bind(pool),queries=[];pool.connect=async()=>{const client=await original(),query=client.query.bind(client);client.query=async(sql,args)=>{queries.push(sql);return query(sql,args);};return client;};
+ const storage=createStorage({pool});await storage.run({count:1},async()=>{});queries.length=0;
+ assert.equal(await storage.run({count:1},async state=>{assert.throws(()=>storage.save(state),/read-only/);return state.count;},{readOnly:true}),1);
+ assert.deepEqual(queries,['SELECT data FROM public.dss_state WHERE id = 1']);assert.equal(pool.state().count,1);
+});
