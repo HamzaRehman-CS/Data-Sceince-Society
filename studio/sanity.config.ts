@@ -11,6 +11,7 @@ export default defineConfig({
 
   projectId: 'dss-cms-portal',
   dataset: 'production',
+  basePath: '/studio',
 
   plugins: [
     structureTool({
