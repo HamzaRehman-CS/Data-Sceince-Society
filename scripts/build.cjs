@@ -1,6 +1,6 @@
 const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process');
 const root = path.join(__dirname, '..'); process.chdir(root);
-// Vercel serves all public pages through api/index.js and expects this output directory.
+// Vercel serves pages through api/index.js and assets from this output directory.
 fs.mkdirSync('public', { recursive: true });
 execFileSync(process.execPath, ['scripts/build-icons.cjs'], { stdio: 'inherit' });
 execFileSync(process.execPath, ['node_modules/tailwindcss/lib/cli.js', '-i', 'assets/input.css', '-o', 'assets/tailwind.css', '--minify'], { stdio: 'inherit' });
@@ -13,3 +13,4 @@ fs.writeFileSync('dist/package.json', JSON.stringify({ name: 'dss-website', priv
 console.log('Built dist. Run it with node dist/server.js; a Node server is required.');
 
 fs.cpSync('assets/fonts','dist/assets/fonts',{recursive:true});
+fs.cpSync('dist/assets','public/assets',{recursive:true});
