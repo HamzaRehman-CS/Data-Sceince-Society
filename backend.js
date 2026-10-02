@@ -1,10 +1,15 @@
 'use strict';
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
 const fsp = fs.promises, scrypt = require('node:util').promisify(crypto.scrypt), { gzipSync } = require('node:zlib');
-const ROOT = __dirname, DATA = process.env.DSS_DATA_DIR || path.join(ROOT, '.private');
+const ROOT = __dirname, DATA = process.env.DSS_DATA_DIR || path.join(process.env.VERCEL ? require('node:os').tmpdir() : ROOT, '.private');
+const auth = require('./lib/workos-auth').createAuth();
+const privateAdmin = require('./lib/admin-auth').createAdminAuth();
+const storage = require('./lib/storage').createStorage();
+const { committedResponse } = require('./lib/committed-response');
+const {normalizeContent,adminLink}=require('./lib/workspace-config');
 fs.mkdirSync(DATA, { recursive: true });
 const DB = path.join(DATA, 'database.json'), clone = v => structuredClone(v);
-const seed = JSON.parse(fs.readFileSync(path.join(ROOT, 'sanity-data.json'), 'utf8'));
+const seed = JSON.parse(fs.readFileSync(path.join(ROOT, 'website/content-seed.json'), 'utf8'));
 seed.pages ||= {}; seed.blocks ||= {}; seed.announcements ||= [];
 seed.collections.navigation ||= ['index:Home','about:About','research:Research','projects:Projects','events:Events','blog:Blog','resources:Resources','community:Community','join:Join us','contact:Contact','member-dashboard:My dashboard'].map(value => { const [page,title]=value.split(':'); return {id:'nav-'+page,title,link:page+'.html',requiresAuth:false}; });
 seed.collections.announcements ||= [];
@@ -77,16 +82,17 @@ function upgradeVisual(content) {
   content._visualVersion=4;
 }
 upgradeVisual(db.content);upgradeVisual(db.draft);
+normalizeContent(db.content);normalizeContent(db.draft);
 db.contributions ||= [];
 for(const user of db.users)if(user.role==='student'&&user.status==='pending')user.role='member';
-if (!db.users.some(u => u.role === 'admin') && process.env.DSS_MANUAL_SETUP !== '1') {
+if (!db.users.some(u => u.role === 'admin') && process.env.DSS_MANUAL_SETUP !== '1' && !auth.enabled && !process.env.VERCEL && process.env.NODE_ENV !== 'production') {
   const salt = crypto.randomBytes(16).toString('hex');
   db.users.push({ id: crypto.randomUUID(), username: 'admin', name: 'Society administrator', email: 'admin@dss.local', password: salt + ':' + crypto.scryptSync('pass', salt, 64).toString('hex'), role: 'admin', status: 'approved', createdAt: new Date().toISOString() });
   fs.writeFileSync(DB, JSON.stringify(db, null, 2), { mode: 0o600 });
 }
 const tokenFile = path.join(DATA, 'setup-token');
 let setupToken = '';
-if (!db.users.some(u => u.role === 'admin')) {
+if (!db.users.some(u => u.role === 'admin') && !auth.enabled && !process.env.VERCEL) {
   setupToken = fs.existsSync(tokenFile) ? fs.readFileSync(tokenFile, 'utf8') : crypto.randomBytes(24).toString('hex');
   fs.writeFileSync(tokenFile, setupToken, { mode: 0o600 });
 }
@@ -94,7 +100,7 @@ let queue = Promise.resolve();
 function mutate(fn) {
   const run = queue.then(async () => {
     const before = clone(db);
-    try { const value = await fn(); await fsp.writeFile(DB + '.tmp', JSON.stringify(db, null, 2), { mode: 0o600 }); await fsp.rename(DB + '.tmp', DB); return value; }
+    try { const value = await fn(); db.stateRevision=(db.stateRevision||0)+1; if (process.env.VERCEL && !storage) fail(503, 'Persistent database is not configured.'); if (storage) await storage.save(db); else { await fsp.writeFile(DB + '.tmp', JSON.stringify(db, null, 2), { mode: 0o600 }); await fsp.rename(DB + '.tmp', DB); } return value; }
     catch (error) { db = before; throw error; }
   }); queue = run.catch(() => {}); return run;
 }
@@ -130,6 +136,8 @@ function validateContent(content) {
       if (!item || !['string', 'number'].includes(typeof item.id) || ids.has(String(item.id))) fail(400, 'Every record needs a unique ID.'); ids.add(String(item.id));
     }
   }
+  if(content.collections.navigation.some(item=>adminLink(item.link)))fail(400,'Administrator access is available only by entering /admin directly.');
+  if(content.portal && Object.entries(content.portal).some(([key,value])=>key.endsWith('Enabled')?typeof value!=='boolean':typeof value!=='string'||value.length>2000))fail(400,'Use text and on/off values for workspace settings.');
   function visit(value, depth = 0) {
     if (depth > 12) fail(400, 'Content is too deeply nested.'); if (!value || typeof value !== 'object') return;
     for (const [key, child] of Object.entries(value)) {
@@ -147,7 +155,7 @@ function validateContent(content) {
     }
   }
 }
-function publicUser(u) { const { password, passwordReset, ...safe } = u; return safe; }
+function publicUser(u) { const { password, passwordReset, workosId, ...safe } = u; return safe; }
 async function hash(password) {
   if (typeof password !== 'string' || password.length < 10 || password.length > 128) fail(400, 'Use a password of 10–128 characters.');
   const salt = crypto.randomBytes(16).toString('hex'); return `${salt}:${(await scrypt(password, salt, 64)).toString('hex')}`;
@@ -155,12 +163,16 @@ async function hash(password) {
 async function verify(password, stored) { const [salt, key] = stored.split(':'); return crypto.timingSafeEqual(Buffer.from(key, 'hex'), await scrypt(String(password).slice(0, 128), salt, 64)); }
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 function currentUser(req) {
+  const administrator = privateAdmin.identity(db, req); if (administrator) return administrator;
+  if (auth.enabled) return req.authUser || null;
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return null;
   const cookie = /(?:^|;\s*)dss_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];
   const session = cookie && db.sessions.find(s => s.token === digest(cookie) && s.expires > Date.now()); return session ? db.users.find(u => u.id === session.userId) : null;
 }
 function authorize(req, role) {
   const user = currentUser(req); if (!user) fail(401, 'Please sign in.');
   if (role === 'admin' && (user.role !== 'admin' || user.status !== 'approved')) fail(403, 'Administrator access required.');
+  if (role === 'admin' && (auth.enabled || process.env.VERCEL) && !privateAdmin.identity(db, req)) fail(403, 'Use the private administrator sign-in.');
   if (role === 'approved' && user.status !== 'approved') fail(403, 'Your application must be approved first.'); return user;
 }
 function sessionCookie(res, value, clear = false) { res.setHeader('Set-Cookie', `dss_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${clear ? 0 : 604800}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`); }
@@ -168,22 +180,25 @@ function newSession(user, res) { const value = crypto.randomBytes(32).toString('
 function audit(user, action) { db.audit.unshift({ id: crypto.randomUUID(), actor: user.email, action, date: new Date().toISOString() }); db.audit = db.audit.slice(0, 500); }
 const limits = new Map();
 function rateLimit(req, scope, maximum = 12) {
-  const key = scope + req.socket.remoteAddress, now = Date.now();
+  const key = scope + (process.env.VERCEL?req.headers['x-vercel-forwarded-for']||req.socket.remoteAddress:req.socket.remoteAddress), now = Date.now();
   if (limits.size > 5000) for (const [k, v] of limits) if (v.until < now) limits.delete(k);
   let entry = limits.get(key); if (!entry || entry.until < now) { entry = { count: 0, until: now + 900000 }; limits.set(key, entry); }
   if (++entry.count > maximum) fail(429, 'Too many attempts. Please try again in 15 minutes.');
 }
 async function body(req) {
-  let size = 0; const chunks = []; for await (const chunk of req) { size += chunk.length; if (size > 15 * 1024 * 1024) fail(413, 'Maximum request size is 15 MB.'); chunks.push(chunk); }
-  try { return JSON.parse(Buffer.concat(chunks).toString()); } catch { fail(400, 'Invalid JSON request.'); }
+  const maximum=req.url.split('?')[0]==='/api/upload-file'?15*1024*1024:256*1024;
+  let size = 0; const chunks = []; for await (const chunk of req) { size += chunk.length; if (size > maximum) fail(413, 'This request is too large.'); chunks.push(chunk); }
+  try { const data=JSON.parse(Buffer.concat(chunks).toString());if(!data||typeof data!=='object'||Array.isArray(data))fail(400,'Use a JSON object.');return data; } catch { fail(400, 'Invalid JSON request.'); }
 }
 function json(res, data, code = 200) { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); }
 function visibleContent(user) {
   const content = clone(db.content);
+  const workspaceRole=user?.cabinetPosition?'cabinet':user?.role;
+  content.collections.announcements=content.collections.announcements.filter(item=>!item.audience||item.audience==='all'?item.requiresAuth===false||user?.status==='approved':user?.status==='approved'&&[user.role,workspaceRole].includes(item.audience));
   if(!['admin','member','ambassador'].includes(user?.role)||user?.status!=='approved')content.collections.opportunities=[];
   if (user?.status !== 'approved') for (const key of collections) content.collections[key] = content.collections[key].map(record => {
     if (record.requiresAuth === false || ['team', 'stats'].includes(key)) return record;
-    const { link, fileUrl, fileName, ...safe } = record; return safe;
+    const { link, fileUrl, fileName, body, content, privateNotes, ...safe } = record; return safe;
   }); return { ...content, _revision: db.publishedRevision };
 }
 const streams = new Set();
@@ -197,7 +212,21 @@ async function api(req, res, url) {
     if ((origin && origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') fail(403, 'Request origin is not allowed.');
     if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Use application/json.');
   }
-  if (route === '/api/auth/me' && method === 'GET') return json(res, { user: currentUser(req) ? publicUser(currentUser(req)) : null, setupRequired: !db.users.some(u => u.role === 'admin') });
+  if(route.startsWith('/api/member/')&&!['GET','HEAD'].includes(method)&&currentUser(req)){
+    const user=currentUser(req);rateLimit(req,'member:'+user.id,60);
+    const permitted=await mutate(()=>{const now=Date.now();db.memberLimits=(db.memberLimits||[]).filter(x=>x.until>now);let entry=db.memberLimits.find(x=>x.userId===user.id);if(!entry){entry={userId:user.id,count:0,until:now+900000};db.memberLimits.push(entry);}if(entry.count>=60)return false;entry.count++;return true;});
+    if(!permitted)return json(res,{error:'Too many updates. Please try again in 15 minutes.'},429);
+  }
+  if (route === '/api/auth/me' && method === 'GET') return json(res, { user: currentUser(req) ? publicUser(currentUser(req)) : null, privateAdmin: !!privateAdmin.identity(db, req), privateAdminConfigured: privateAdmin.enabled, setupRequired: !auth.enabled && !process.env.VERCEL && !db.users.some(u => u.role === 'admin'), authProvider: auth.enabled ? 'workos' : process.env.VERCEL ? 'unconfigured' : 'local' });
+  if(route==='/api/revision'&&method==='GET')return json(res,{publishedRevision:db.publishedRevision,stateRevision:currentUser(req)?db.stateRevision||0:undefined});
+  if (route === '/api/admin/login' && method === 'POST') {
+    const input = await body(req), result = await mutate(() => privateAdmin.signIn(db, req, res, input));
+    return json(res, result.user ? { user: publicUser(result.user) } : { error: result.error }, result.status);
+  }
+  if (route === '/api/admin/logout' && method === 'POST') {
+    await mutate(() => privateAdmin.signOut(db, req, res)); return json(res, { success: true, logoutUrl: '/admin' });
+  }
+  if ((auth.enabled || process.env.VERCEL) && route.startsWith('/api/auth/') && !['/api/auth/me','/api/auth/logout'].includes(route)) fail(400, 'Use the secure sign-in page to manage your account.');
   if (route === '/api/auth/setup' && method === 'POST') {
     rateLimit(req, 'setup'); const input = await body(req), password = await hash(input.password);
     await mutate(() => {
@@ -222,15 +251,18 @@ async function api(req, res, url) {
     await mutate(() => newSession(user, res)); return json(res, { user: publicUser(user) });
   }
   if (route === '/api/auth/logout' && method === 'POST') {
+    if (privateAdmin.identity(db, req)) { await mutate(() => privateAdmin.signOut(db, req, res)); return json(res, { success: true, logoutUrl: '/admin' }); }
+    if (auth.enabled) { const logoutUrl=await mutate(()=>auth.logout(req,res,db));return json(res,{success:true,logoutUrl}); }
     const cookie = /(?:^|;\s*)dss_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];
     await mutate(() => { db.sessions = db.sessions.filter(s => s.token !== digest(cookie || '')); }); sessionCookie(res, '', true); return json(res, { success: true });
   }
   if (route === '/api/auth/password' && method === 'POST') {
+    if (privateAdmin.identity(db, req)) fail(400, 'Administrator credentials are managed by the website owner.');
     rateLimit(req, 'password'); const user = authorize(req), input = await body(req);
     if (!await verify(input.currentPassword, user.password)) fail(400, 'Current password is incorrect.'); const password = await hash(input.password);
     await mutate(() => { user.password = password; db.sessions = db.sessions.filter(s => s.userId !== user.id); newSession(user, res); }); return json(res, { success: true });
   }
-  if (route === '/api/sanity-content' && method === 'GET') return json(res, visibleContent(currentUser(req)));
+  if (route === '/api/content' && method === 'GET') return json(res, visibleContent(currentUser(req)));
   if (route === '/api/changes' && method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
     res.write(`data: ${db.publishedRevision}\n\n`); streams.add(res); req.on('close', () => streams.delete(res)); return;
@@ -268,6 +300,14 @@ async function api(req, res, url) {
       const user = db.users.find(u => u.id === input.id); if (!user) fail(404, 'Account not found.'); if (user.role === 'admin') fail(400, 'Administrator accounts cannot be changed here.');
       if (!['pending', 'approved', 'rejected', 'suspended'].includes(input.status) || !['student', 'member', 'ambassador'].includes(input.role)) fail(400, 'Invalid role or status.');
       Object.assign(user, { status: input.status, role: input.role, reviewNote: clean(input.reviewNote), reviewedAt: new Date().toISOString() }); audit(admin, `Updated account ${user.email}: ${user.role}, ${user.status}`);
+      if(typeof input.cabinetPosition==='string')user.cabinetPosition=clean(input.cabinetPosition,100);
+      if (user.cabinetApplication?.status === 'pending' && input.cabinetDecision) {
+        if (!['approved','rejected'].includes(input.cabinetDecision)) fail(400, 'Choose a valid cabinet decision.');
+        user.cabinetApplication.status = input.cabinetDecision;
+        user.cabinetApplication.reviewNote = clean(input.reviewNote);
+        user.cabinetApplication.reviewedAt = new Date().toISOString();
+        if (input.cabinetDecision === 'approved') {user.cabinetPosition = user.cabinetApplication.position;if(user.role==='student')user.role='member';}
+      }
       if (user.ambassadorApplication?.status === 'pending' && input.applicationDecision) {
         if (!['approved','rejected'].includes(input.applicationDecision)) fail(400, 'Choose a valid application decision.');
         user.ambassadorApplication.status = input.applicationDecision; user.ambassadorApplication.reviewNote=clean(input.reviewNote);
@@ -283,11 +323,28 @@ async function api(req, res, url) {
   }
   if (route === '/api/contact' && method === 'POST') {
     rateLimit(req, 'contact'); const input = await body(req), inquiry = { id: crypto.randomUUID(), name: clean(input.name, 100), email: email(input.email), message: clean(input.message, 10000), status: 'new', date: new Date().toISOString() };
-    if (!inquiry.name || !inquiry.message) fail(400, 'Please complete all fields.'); await mutate(() => db.inquiries.unshift(inquiry)); return json(res, { success: true }, 201);
+    if (!inquiry.name || !inquiry.message) fail(400, 'Please complete all fields.');
+    if(input.website)return json(res,{success:true},201);
+    const accepted=await mutate(()=>{
+      const now=Date.now(),ip=process.env.VERCEL?req.headers['x-vercel-forwarded-for']||req.socket.remoteAddress:req.socket.remoteAddress,key=digest('contact:'+ip);
+      db.contactLimits=(db.contactLimits||[]).filter(x=>x.until>now).slice(-4096);
+      let limit=db.contactLimits.find(x=>x.key===key);if(!limit){limit={key,count:0,until:now+900000};db.contactLimits.push(limit);}if(limit.count>=12)return false;
+      limit.count++;if(db.inquiries.some(i=>i.email===inquiry.email&&i.message===inquiry.message&&Date.parse(i.date)>now-600000))return false;
+      db.inquiries.unshift(inquiry);return true;
+    });return json(res,accepted?{success:true}:{error:'Please wait before sending another message.'},accepted?201:429);
   }
   if (route === '/api/admin/inquiry' && method === 'PATCH') {
     const user = authorize(req, 'admin'), input = await body(req);
     await mutate(() => { const inquiry = db.inquiries.find(i => i.id === input.id); if (!inquiry) fail(404, 'Inquiry not found.'); inquiry.status = input.status === 'resolved' ? 'resolved' : 'new'; audit(user, 'Updated inquiry status'); }); return json(res, { success: true });
+  }
+  if (route === '/api/member/cabinet-application' && method === 'POST') {
+    const user = authorize(req, 'approved'), input = await body(req);
+    if (!['student','member','ambassador'].includes(user.role)) fail(403, 'Use a community account to apply.');
+    if (user.cabinetApplication?.status === 'pending') fail(409, 'Your cabinet application is already under review.');
+    const position = clean(input.position,100), motivation = clean(input.motivation,5000);
+    if (!position || motivation.length < 30) fail(400, 'Choose a position and explain your interest in at least 30 characters.');
+    await mutate(() => { user.cabinetApplication = { position, motivation, status:'pending', submittedAt:new Date().toISOString() }; });
+    return json(res, { success:true },201);
   }
   if (route === '/api/member' && method === 'GET') { const user = authorize(req); return json(res, { user: publicUser(user), registrations: db.registrations.filter(r => r.userId === user.id), bookmarks: db.bookmarks.filter(r => r.userId === user.id), activities: db.activities.filter(a => a.userId === user.id), contributions:db.contributions.filter(c=>c.userId===user.id), content: user.status === 'approved' ? visibleContent(user) : null }); }
   if(route==='/api/member/membership-application'&&method==='POST'){
@@ -348,7 +405,7 @@ async function api(req, res, url) {
     const file = Buffer.from(String(input.fileData || '').split(',').pop(), 'base64'); if (!file.length || file.length > 10 * 1024 * 1024) fail(400, 'Choose a file up to 10 MB.');
     const signatures = { '.png': '89504e470d0a1a0a', '.jpg': 'ffd8ff', '.jpeg': 'ffd8ff', '.gif': '47494638', '.pdf': '25504446', '.zip': '504b', '.docx': '504b', '.pptx': '504b', '.webp': '52494646' };
     if (signatures[ext] && !file.toString('hex').startsWith(signatures[ext])) fail(400, 'File content does not match its extension.');
-    const name = crypto.randomUUID() + ext, dir = path.join(DATA, 'uploads'); await fsp.mkdir(dir, { recursive: true }); await fsp.writeFile(path.join(dir, name), file);
+    const name = crypto.randomUUID() + ext, dir = path.join(DATA, 'uploads'); if (storage) await storage.writeFile(name, file); else { await fsp.mkdir(dir, { recursive: true }); await fsp.writeFile(path.join(dir, name), file); }
     const upload = { url: '/uploads/' + name, fileName: clean(input.fileName, 150), fileSize: `${(file.length / 1024).toFixed(1)} KB`, public: input.public === true, date: new Date().toISOString() };
     await mutate(() => { db.uploads.unshift(upload); audit(user, 'Uploaded ' + upload.fileName); }); return json(res, { success: true, ...upload }, 201);
   }
@@ -358,8 +415,8 @@ const MIME = { '.woff2':'font/woff2', '.html': 'text/html; charset=utf-8', '.js'
 async function serve(req, res, url) {
   let route; try { route = decodeURIComponent(url.pathname); } catch { fail(400, 'Invalid URL.'); }
   if (route === '/' || route === '') route = '/index.html';
-  if (route === '/admin-login.html') { res.writeHead(302, { Location: '/login.html' }); return res.end(); }
-  if (route.startsWith('/studio')) { res.writeHead(302, { Location: '/admin.html' }); return res.end(); }
+  if(['/admin.html','/admin/','/admin-login.html','/build','/build.html','/admin/index.html'].includes(route))fail(404,'Page not found.');
+  if(route==='/admin'){route='/private-admin.html';res.setHeader('Cache-Control','no-store');}
   if (!path.extname(route)) route += '.html'; let file;
   if (route.startsWith('/uploads/')) {
     const name = path.basename(route); if (route !== '/uploads/' + name) fail(403, 'Forbidden.');
@@ -367,10 +424,17 @@ async function serve(req, res, url) {
     const allowed = user?.status === 'approved' || (refs.length ? refs.every(r => r.requiresAuth === false) : uploaded?.public === true);
     if (!allowed) fail(403, 'Approved membership is required to download this file.');
     file = uploaded ? path.join(DATA, 'uploads', name) : path.join(ROOT, 'uploads', name); res.setHeader('Cache-Control', 'private, no-store');
+    if (uploaded && storage) {
+      const data = await storage.readFile(name); if (!data) fail(404, 'File not found.');
+      res.setHeader('Content-Type', MIME[path.extname(name)] || 'application/octet-stream');
+      if (!/\.(png|jpe?g|gif|webp)$/i.test(name)) res.setHeader('Content-Disposition', 'attachment');
+      return res.end(req.method === 'HEAD' ? undefined : data);
+    }
     if (!/\.(png|jpe?g|gif|webp)$/i.test(name)) res.setHeader('Content-Disposition', 'attachment');
   } else {
     const routes=Object.fromEntries(pages.map(p=>['/'+p+'.html',(['login','member-dashboard'].includes(p)?'accounts/':'website/pages/')+p+'.html']));
-    Object.assign(routes,{'/admin.html':'admin/index.html','/build.html':'admin/index.html','/app.js':'website/scripts/app.js','/sanity-client.js':'website/scripts/content.js','/style.css':'website/styles/base.css','/portal.js':'admin/portal.js','/portal.css':'admin/portal.css'});
+    Object.assign(routes,{'/private-admin.html':'admin/index.html','/app.js':'website/scripts/app.js','/content.js':'website/scripts/content.js','/style.css':'website/styles/base.css','/portal.js':'admin/portal.js','/portal.css':'admin/portal.css'});
+    if(url.pathname!=='/admin')delete routes['/private-admin.html'];
     for(const asset of ['assets/dss-mark.svg','assets/fonts/inter-latin.woff2','accounts/workspace.css','website/styles/blueprint.css','website/styles/page-motion.css','website/scripts/page-motion.js','website/scripts/catalog.js','website/scripts/data-surface.js','assets/tailwind.css','assets/lucide.js','website/styles/society.css','website/styles/identity.css','website/scripts/identity.js','website/scripts/background.js','website/scripts/banners.js','website/scripts/society.js','website/scripts/editor-bridge.js','admin/editor.js','admin/banners.js'])routes['/'+asset]=asset;
     if(!routes[route])fail(404,'Page not found.');file=path.join(ROOT,routes[route]);
   }
@@ -383,9 +447,47 @@ async function serve(req, res, url) {
 }
 const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('X-Frame-Options', 'SAMEORIGIN'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  try { const url = new URL(req.url, 'http://localhost'); if (url.pathname.startsWith('/api/')) await api(req, res, url); else if (['GET', 'HEAD'].includes(req.method)) await serve(req, res, url); else fail(405, 'Method not allowed.'); }
-  catch (error) { if (res.headersSent) return res.end(); if (typeof error.code !== 'number') console.error(error); json(res, { error: typeof error.code === 'number' ? error.message : 'Server error. Please try again.' }, typeof error.code === 'number' ? error.code : 500); }
+  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'");
+  if(process.env.VERCEL)res.setHeader('Strict-Transport-Security','max-age=31536000');
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    const handle = async () => {
+      if (auth.enabled && ['/auth/login','/auth/signup','/callback'].includes(url.pathname)) {
+        if (await auth.route(req, res, url, async (identity, isAdmin) => {
+          let user;
+          await mutate(() => {
+            const address = email(identity.email);
+            user = db.users.find(u => u.workosId === identity.id) || db.users.find(u => u.email === address && !u.workosId);
+            if (user?.role === 'admin' && !isAdmin) fail(403, 'This account is not an authorized administrator.');
+            if (!user) { user = { id: crypto.randomUUID(), email: address, name: clean([identity.firstName,identity.lastName].filter(Boolean).join(' '),100) || address.split('@')[0], role: 'student', status: 'approved', profile: {}, createdAt: new Date().toISOString() }; db.users.push(user); }
+            user.workosId = identity.id;
+            if (isAdmin) { user.role = 'admin'; user.status = 'approved'; }
+          });
+          return user;
+        })) return;
+      }
+      if (auth.enabled && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/')) && !['/api/auth/logout','/api/admin/login','/api/admin/logout'].includes(url.pathname)&&!privateAdmin.identity(db,req)) {
+        const identity = await auth.identity(req, res,db);
+        req.authUser = identity ? db.users.find(u => u.workosId === identity.id) : null;
+        if (req.authUser?.role === 'admin' && !auth.admins.has(identity.email.toLowerCase())) req.authUser = null;
+      }
+      if (url.pathname.startsWith('/api/')) await api(req, res, url);
+      else if (['GET','HEAD'].includes(req.method)) await serve(req, res, url);
+      else fail(405, 'Method not allowed.');
+    };
+    if (storage && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/') || url.pathname === '/callback')) {
+      await committedResponse(res, async () => {
+        let before;
+        try { await storage.run(db, async state => { before = clone(state); db = state; db.contributions ||= [];normalizeContent(db.content);normalizeContent(db.draft); await handle(); },{readOnly:['GET','HEAD'].includes(req.method)&&url.pathname!=='/callback'}); }
+        catch (error) { if (before) db = before; throw error; }
+      });
+    }
+    else await handle();
+  }
+  catch (error) { if (res.headersSent) return res.end(); if (typeof error.code !== 'number') console.error('Request failed:', error.name); json(res, { error: typeof error.code === 'number' ? error.message : 'Server error. Please try again.' }, typeof error.code === 'number' ? error.code : 500); }
 });
 const heartbeat = setInterval(() => { for (const res of streams) res.write(': keepalive\n\n'); }, 25000); heartbeat.unref();
 const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3000;
-server.listen(port, process.env.HOST || '127.0.0.1', () => { console.log(`DSS website: http://localhost:${server.address().port}`); if (setupToken) console.log(`Create your administrator account: http://localhost:${server.address().port}/login.html?setup=${setupToken}`); });
+module.exports = server.listeners('request')[0];
+if (!process.env.VERCEL) server.listen(port, process.env.HOST || '127.0.0.1', () => { console.log(`DSS website: http://localhost:${server.address().port}`); if (setupToken) console.log(`Create your administrator account: http://localhost:${server.address().port}/login.html?setup=${setupToken}`); });

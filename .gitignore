@@ -4,5 +4,10 @@ node_modules/
 .env
 test-results/
 playwright-report/
-studio/node_modules/
 *.tsbuildinfo
+
+.env.*
+!.env.workos.example
+dist/
+public/
+.vercel/

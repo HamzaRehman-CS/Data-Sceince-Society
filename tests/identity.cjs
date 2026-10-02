@@ -50,7 +50,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  await admin.locator('[data-media-upload=fileUrl]').setInputFiles({name:'community-guide.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF')});
  await expect(admin.locator('#editor-dialog [name=fileUrl]')).toHaveValue(/\/uploads\//);
  await admin.getByRole('button',{name:'Apply changes',exact:true}).click();await admin.locator('#editor-dialog').waitFor({state:'hidden'});
- const published=await(await sc.request.get(base+'/api/sanity-content')).json(),resource=published.collections.resources.find(r=>r.title==='Community test handbook');assert.ok(resource?.fileUrl);assert.equal((await sc.request.get(base+resource.fileUrl)).status(),200);assert.equal((await gc.request.get(base+resource.fileUrl)).status(),403);
+ const published=await(await sc.request.get(base+'/api/content')).json(),resource=published.collections.resources.find(r=>r.title==='Community test handbook');assert.ok(resource?.fileUrl);assert.equal((await sc.request.get(base+resource.fileUrl)).status(),200);assert.equal((await gc.request.get(base+resource.fileUrl)).status(),403);
  await admin.getByRole('button',{name:'Brand & settings',exact:true}).click();await admin.locator('[name=accent]').fill('#7e3b2f');await admin.locator('[name=canvasEnabled]').uncheck();await admin.getByRole('button',{name:'Publish changes'}).click();await expect(admin.locator('#save-state')).toHaveText('All changes are live');
  await guest.goto(base+'/index.html');await guest.waitForFunction(()=>DSS.content?.theme.accent==='#7e3b2f');await expect(guest.locator('.surface-stage')).toHaveAttribute('data-running','false');assert.equal(await guest.locator('html').evaluate(el=>getComputedStyle(el).getPropertyValue('--color-accent-blue').trim()),'#7e3b2f');
  assert.equal(await guest.evaluate(()=>DSS.content.heroSection.heroTitle),'Great minds.\nBetter together.');
@@ -62,7 +62,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  for(const p of [admin,student]){await p.setViewportSize({width:390,height:844});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'portal mobile overflow');}
  await student.screenshot({path:path.join(shots,'ambassador-mobile.png'),fullPage:true});
  // No private application identity data or hashes escape to the public content API.
- const publicText=await(await gc.request.get(base+'/api/sanity-content')).text();assert.ok(!publicText.includes(application.cnic));assert.ok(!publicText.includes('12345-1234567-1'));
+ const publicText=await(await gc.request.get(base+'/api/content')).text();assert.ok(!publicText.includes(application.cnic));assert.ok(!publicText.includes('12345-1234567-1'));
  assert.equal((await gc.request.get(base+'/.private/database.json')).status(),404);
  assert.deepEqual(errors,[]);
  console.log('Identity checks passed: hidden shared login, direct student registration, ambassador application validation, student-to-ambassador review, reports, inline PDF upload, member-only access, theme publication, motion controls, search, 33 responsive page checks and private data boundaries.');

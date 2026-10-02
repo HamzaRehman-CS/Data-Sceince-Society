@@ -1,5 +1,5 @@
 const fs = require('node:fs'), { execFileSync } = require('node:child_process');
-const scripts=['server.js','backend.js',...['website/scripts','admin'].flatMap(dir=>fs.readdirSync(dir).filter(f=>f.endsWith('.js')).map(f=>dir+'/'+f))];
+const scripts=['server.js','backend.js',...['website/scripts','admin','lib'].flatMap(dir=>fs.readdirSync(dir).filter(f=>f.endsWith('.js')).map(f=>dir+'/'+f))];
 for (const file of scripts) execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
 for (const file of ['website/pages','accounts','admin'].flatMap(dir=>fs.readdirSync(dir).filter(f=>f.endsWith('.html')).map(f=>dir+'/'+f))) {
   const source = fs.readFileSync(file, 'utf8');
