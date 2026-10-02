@@ -449,4 +449,5 @@ const server = http.createServer(async (req, res) => {
 });
 const heartbeat = setInterval(() => { for (const res of streams) res.write(': keepalive\n\n'); }, 25000); heartbeat.unref();
 const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3000;
-server.listen(port, process.env.HOST || '127.0.0.1', () => { console.log(`DSS website: http://localhost:${server.address().port}`); if (setupToken) console.log(`Create your administrator account: http://localhost:${server.address().port}/login.html?setup=${setupToken}`); });
+module.exports = server.listeners('request')[0];
+if (!process.env.VERCEL) server.listen(port, process.env.HOST || '127.0.0.1', () => { console.log(`DSS website: http://localhost:${server.address().port}`); if (setupToken) console.log(`Create your administrator account: http://localhost:${server.address().port}/login.html?setup=${setupToken}`); });

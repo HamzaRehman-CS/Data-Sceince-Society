@@ -3,8 +3,9 @@
   "framework": null,
   "buildCommand": "npm run build",
   "functions": {
-    "server.js": {
+    "api/index.js": {
       "includeFiles": "{website,accounts,admin,assets,uploads,lib}/**/*"
     }
-  }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
