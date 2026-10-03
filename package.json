@@ -1,19 +1,23 @@
 {
   "name": "data-science-society",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Data Science Society website and local content server",
   "scripts": {
     "start": "node server.js",
     "build": "node scripts/build.cjs",
     "check": "node scripts/check.cjs",
-    "test": "npm run check && node --test tests/integration.cjs",
+    "test": "npm run check && node --test tests/integration.cjs tests/workos.cjs tests/storage.cjs tests/admin-auth.cjs tests/security.cjs tests/applications.cjs",
+    "check:database": "node scripts/database-check.cjs",
     "test:browser": "node tests/browser.cjs",
     "test:design": "node tests/design-regression.cjs",
     "test:identity": "node tests/identity.cjs",
-    "check:studio": "npm --prefix studio run type-check",
     "test:members": "node tests/members-v4.cjs",
-    "test:experience": "node tests/page-experience.cjs"
+    "test:experience": "node tests/page-experience.cjs",
+    "test:workspaces": "node tests/workspace-experience.cjs",
+    "test:applications": "node tests/applications-browser.cjs",
+    "test:students": "node tests/student-experience.cjs",
+    "test:projects": "node tests/learning-projects.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -22,5 +26,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@workos-inc/node": "^11.0.0",
+    "pg": "^8.23.1"
   }
 }

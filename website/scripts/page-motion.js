@@ -9,6 +9,10 @@
   const revealed = new WeakSet(), observed = new WeakSet(), animations = new Set();
   const allowed = () => !paused && !reduced.matches && !editing && !body.classList.contains('animation-disabled');
   function sync() {
+    if(!document.querySelector('[data-page-motion-toggle]')){
+      const button=document.createElement('button');button.type='button';button.className='footer-motion-control';button.dataset.pageMotionToggle='';button.innerHTML='<span>Stop Animation</span>';
+      (document.querySelector('.footer-country')||document.querySelector('.auth-card')||document.querySelector('.member-main')||document.querySelector('.workspace .main')||document.getElementById('app')||body).append(button);
+    }
     body.classList.add('page-motion-ready');
     body.classList.toggle('page-motion-paused', !allowed());
     body.classList.toggle('page-motion-sleep', document.hidden);
@@ -19,8 +23,8 @@
       button.hidden = false;
       button.disabled = reduced.matches || body.classList.contains('animation-disabled');
       button.setAttribute('aria-pressed', String(paused));
-      button.setAttribute('aria-label', reduced.matches ? 'Motion reduced by your device settings' : paused ? 'Play page animations' : 'Pause page animations');
-      button.querySelector('span').textContent = reduced.matches ? 'Reduced motion' : paused ? 'Play motion' : 'Pause motion';
+      button.setAttribute('aria-label', reduced.matches ? 'Motion reduced by your device settings' : paused ? 'Resume Animation' : 'Stop Animation');
+      button.querySelector('span').textContent = reduced.matches ? 'Reduced motion' : paused ? 'Resume Animation' : 'Stop Animation';
     }
     if (!allowed() || document.hidden) for (const animation of animations) animation.finish();
     document.dispatchEvent(new CustomEvent('dss:motionchange', { detail: { paused } }));
@@ -72,5 +76,7 @@
   reduced.addEventListener('change', sync);
   window.addEventListener('pagehide', () => { for (const animation of animations) animation.cancel(); });
   window.addEventListener('pageshow', sync);
+  window.addEventListener('storage',event=>{if(event.key==='dss_motion_paused'){paused=event.newValue==='true';sync();}});
+  const app=document.getElementById('app');if(app)new MutationObserver(observe).observe(app,{childList:true});
   observe();
 })();

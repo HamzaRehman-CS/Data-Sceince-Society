@@ -8,6 +8,9 @@
     let next=Infinity;
     for(const banner of content.banners||[]) {
       if(!banner.active)continue;
+      const preview=new URLSearchParams(location.search).has('edit')&&parent!==window;
+      const applicationType=banner.applicationType||(banner.id==='membership-announcement'?'membership':window.applicationLinkType?.(banner.link));
+      if(!preview&&applicationType&&!content.applications?.[applicationType]?.enabled)continue;
       const start=banner.startsAt?Date.parse(banner.startsAt):0,end=banner.endsAt?Date.parse(banner.endsAt):Infinity;
       if(start>now)next=Math.min(next,start);if(end>now&&isFinite(end))next=Math.min(next,end);
       const pages=String(banner.pages||'all').split(',').map(p=>p.trim());

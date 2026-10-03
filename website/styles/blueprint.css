@@ -25,3 +25,7 @@
 
 @media(min-width:761px) and (max-width:1000px){.resource-hero{grid-template-columns:1fr;gap:25px}.resource-hero>div:first-child{max-width:600px}.book-stack{width:530px;max-width:100%;margin:0 auto}.resource-hero h1{font-size:64px}}
 .event-card .content-actions{padding-left:0;flex-direction:row;flex-wrap:wrap}.event-meta>span{display:flex;gap:6px;align-items:center;margin-right:12px}.event-calendar>span{font-size:11px;margin-top:8px}
+.account-entry{margin-top:26px}.account-entry-actions{display:flex;flex-wrap:wrap;gap:12px}.account-entry-actions .soc-button{min-height:46px;justify-content:center;flex:1;min-width:140px}.application-card:has(.account-entry)>p{max-width:460px}.account-entry-actions .ghost{background:var(--paper);border:1px solid var(--soc-line)}
+.account-entry-actions .soc-button{white-space:nowrap;padding:14px 18px;font-size:12px}
+
+[hidden]{display:none!important}

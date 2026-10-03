@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  let revision, stream, loading;
+  let revision, loading, polling, pollTimer, stateRevision;
   const page = location.pathname.split('/').pop().replace('.html', '') || 'index';
   const text = (selector, value) => { if (value !== undefined) document.querySelectorAll(selector).forEach(el => { el.textContent = value; }); };
   const attr = (selector, key, value) => { if (value !== undefined) document.querySelectorAll(selector).forEach(el => el.setAttribute(key, value)); };
@@ -62,20 +62,28 @@
     }
     window.renderSiteBanners?.(content);
     document.querySelectorAll('img').forEach(el => { el.decoding = 'async'; if (!el.closest('header')) el.loading = 'lazy'; });
-    document.querySelectorAll('a[href="login.html"]').forEach(el => { if (DSS.user) { el.href = DSS.user.role === 'admin' ? 'admin.html' : 'member-dashboard.html'; (el.querySelector('span') || el).textContent = 'Dashboard'; } });
+    document.querySelectorAll('a[href="login.html"]').forEach(el => { if (DSS.user) { el.href = 'member-dashboard.html'; (el.querySelector('span') || el).textContent = 'Dashboard'; } });
+    document.querySelectorAll('a[href]').forEach(el=>{if(isAdminLink(el.getAttribute('href')))el.remove();});
+    window.syncApplicationAvailability?.();
     document.dispatchEvent(new CustomEvent('dss:rendered'));
   };
   async function sync() {
     if (loading) return loading;
-    loading = (async () => { const content = await api('/api/sanity-content'); if (revision !== content._revision) { revision = content._revision; applySiteContent(content); } })();
+    loading = (async () => { const content = await api('/api/content'); if (revision !== content._revision) { revision = content._revision; applySiteContent(content); } })();
     try { await loading; } catch (error) { showAdminToast('Live content is unavailable. Reload to try again.', 'error'); } finally { loading = null; }
   }
-  function connect() {
-    if (document.hidden || stream || new URLSearchParams(location.search).has('edit')) return;
-    stream = new EventSource('/api/changes'); stream.onmessage = e => { if (Number(e.data) !== revision) sync(); };
+  async function refreshAccount(){const account=await api('/api/auth/me');const changed=JSON.stringify([DSS.user?.id,DSS.user?.role,DSS.user?.status])!==JSON.stringify([account.user?.id,account.user?.role,account.user?.status]);DSS.user=account.user;DSS.authProvider=account.authProvider;if(changed)revision=undefined;}
+  async function poll(){
+    clearTimeout(pollTimer);if(polling)return;
+    if(!document.hidden&&!new URLSearchParams(location.search).has('edit')){
+      polling=true;try{const version=await api('/api/revision');if(stateRevision!==version.stateRevision){stateRevision=version.stateRevision;await refreshAccount();revision=undefined;document.dispatchEvent(new CustomEvent('dss:statechange'));}if(version.publishedRevision!==revision)await sync();}catch{}finally{polling=false;}
+    }
+    pollTimer=setTimeout(poll,500);
   }
-  document.addEventListener('visibilitychange', () => { if(new URLSearchParams(location.search).has('edit'))return; if (document.hidden) { stream?.close(); stream = null; } else { revision = undefined; sync(); connect(); } });
-  window.addEventListener('pagehide', () => stream?.close());
-  window.addEventListener('pageshow', e => { if (e.persisted) { revision = undefined; sync(); connect(); } });
-  (async () => { try { DSS.user = (await api('/api/auth/me')).user; await sync(); connect(); } catch (error) { showAdminToast(error.message, 'error'); } })();
+  document.addEventListener('visibilitychange',async()=>{if(!document.hidden){try{await refreshAccount();revision=undefined;await sync();}catch{}poll();}});
+  window.addEventListener('focus',()=>poll());
+  window.addEventListener('pagehide',()=>clearTimeout(pollTimer));
+  window.addEventListener('pageshow',event=>{if(event.persisted){revision=undefined;poll();}});
+  const channel=typeof BroadcastChannel==='function'?new BroadcastChannel('dss-live-content'):null;channel?.addEventListener('message',()=>poll());
+  (async()=>{try{await refreshAccount();await sync();poll();}catch(error){showAdminToast(error.message,'error');}})();
 })();

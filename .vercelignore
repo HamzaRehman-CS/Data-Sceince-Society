@@ -1,0 +1,12 @@
+.git/
+.codex/
+.agents/
+.private/
+.npm-cache/
+.env*
+node_modules/
+dist/
+tests/
+docs/
+test-results/
+playwright-report/

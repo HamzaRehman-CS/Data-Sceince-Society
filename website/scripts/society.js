@@ -34,7 +34,7 @@
     const projects = document.getElementById('home-projects');
     if (projects) projects.innerHTML = (records.projects || []).slice(0, 2).map((r, i) => projectCard(r, i, true)).join('');
     const events = document.getElementById('home-events');
-    if (events) events.innerHTML = (records.events || []).slice(0, 2).map(item => `<article class="home-event" data-record="events:${esc(item.id)}"><div class="date-tile">${eventDate(item)}</div><div><p class="record-kicker">${esc(item.type)}</p><h3>${esc(item.title)}</h3><p>${esc(item.date)} · ${esc(item.loc)}</p></div><a href="events.html" class="text-link">Event details</a></article>`).join('');
+    if (events) events.innerHTML = [...(records.events || [])].sort((a,b)=>Number(b.status==='confirmed')-Number(a.status==='confirmed')||(a.startDate||'9999').localeCompare(b.startDate||'9999')).slice(0, 2).map(item => `<article class="home-event" data-record="events:${esc(item.id)}"><div class="date-tile">${eventDate(item)}</div><div><p class="record-kicker">${esc(item.type)}</p><h3>${esc(item.title)}</h3><p>${esc(item.date)} · ${esc(item.loc)}</p></div><a href="detail.html?collection=events&amp;id=${encodeURIComponent(item.id)}" class="text-link">Event details</a></article>`).join('');
     renderTeam(records);
     const opportunities = document.getElementById('opportunities-grid');
     if (opportunities) {
