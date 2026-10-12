@@ -33,7 +33,7 @@
     const art=document.querySelector('.data-art');
     if(art){
       document.querySelector('.hero-custom-image')?.remove();art.hidden=!!hero.heroImage;
-      if(hero.heroImage){const image=document.createElement('img');image.className='hero-custom-image';image.src=hero.heroImage;image.alt=hero.heroImageAlt||'Data Science Society community';image.width=600;image.height=624;image.decoding='async';art.after(image);}
+      if(hero.heroImage){const image=document.createElement('img');image.className='hero-custom-image';image.src=hero.heroImage;image.alt=hero.heroImageAlt||'Data Science Community';image.width=600;image.height=624;image.decoding='async';art.after(image);}
       document.documentElement.style.setProperty('--sphere-opacity',String(Math.max(10,Math.min(100,Number(theme.canvasOpacity)||55))/100));
     }
     const heroLinks = document.querySelector('#home-hero-title')?.closest('section')?.querySelectorAll('a') || [];

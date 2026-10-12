@@ -11,8 +11,8 @@
   const badge = status => `<span class="badge ${h(status)}">${h(status)}</span>`;
   const empty = message => `<div class="empty">${h(message)}</div>`;
   const btn = (label, action, extra = '', className = '') => `<button type="button" class="btn ${className}" data-action="${action}" ${extra}>${label}</button>`;
-  const intro = (title, desc, action = '') => `<div class="page-intro"><div><p class="eyebrow">Data Science Society</p><h1>${title}</h1><p>${desc}</p></div>${action}</div>`;
-  let brand = '<a class="brand" href="index.html"><span class="brand-mark"><img src="/assets/dss-mark.svg" alt="" width="60" height="40"></span><span>Data Science<br>Society</span></a>';
+  const intro = (title, desc, action = '') => `<div class="page-intro"><div><p class="eyebrow">Data Science Community</p><h1>${title}</h1><p>${desc}</p></div>${action}</div>`;
+  let brand = '<a class="brand" href="index.html"><span class="brand-mark"><img src="/assets/dss-mark.svg" alt="" width="60" height="40"></span><span>Data Science<br>Community</span></a>';
   function field(key, value = '', options = {}) {
     const label = options.label || ({deep:'Feature panel colour',line:'Border colour',heroImage:'Hero image (optional)',heroImageAlt:'Hero image description',canvasEnabled:'Enable decorative motion',canvasOpacity:'Animation visibility (10–100)',accent:'Primary / button colour',sky:'Highlight colour',bg:'Page background',surface:'Card background',ink:'Text colour',muted:'Secondary text colour',cnic:'CNIC / B-form',studentId:'Student ID',availability:'Weekly commitment',pitch:'Campus activity plan'})[key] || pretty(key), required = options.required ? 'required' : '';
     if (typeof value === 'boolean') return `<label class="field"><span>${h(label)}</span><input name="${h(key)}" type="checkbox" ${value ? 'checked' : ''}></label>`;
@@ -32,7 +32,7 @@
     dialog.querySelector('form').onsubmit = async event => { event.preventDefault(); const button = dialog.querySelector('[type=submit]'); button.disabled = true; try { await onSave(event.target); dialog.close(); } catch (error) { dialog.querySelector('.feedback').textContent = error.message; } finally { button.disabled = false; } };
     dialog.showModal();
   }
-  let auth, model, overview, member, active = 'overview', collection = 'blogs', dirty = false, page = 'index', selected;
+  let auth, model, overview, member, active = 'overview', collection = 'blogs', dirty = false, page = 'index', selected, adminTimer, adminChecking = false;
   let libraryLevel='all', libraryFilter='all', librarySearch='', libraryLimit=6;
   let pageEditor, selectedElement, liveApply=true, publishing=false;
   const reportPolicy="Submit a PDF report in Google Drive for every task. In your own words, explain what you did, what you learned and the result. Your marks are based on both the task you performed and the report you submitted. AI-written reports receive zero marks, the task is rejected, and no certificate or award is issued.";
@@ -236,7 +236,7 @@
       const result = await api('/api/upload-file', 'POST', { fileName: file.name, fileData, public: form.elements.public.checked }); toast('Uploaded. Copy the URL into your content or page editor.'); await refresh();
     }, 'Upload file');
   }
-  function updateBrand(content){const site=content?.siteSettings||{};brand='<a class="brand" href="index.html"><span class="brand-mark"><img src="'+h(site.logoImage||'/assets/dss-mark.svg')+'" alt="" width="60" height="40"></span><span>'+h(site.siteTitle||'Data Science Society')+'</span></a>';}
+  function updateBrand(content){const site=content?.siteSettings||{};brand='<a class="brand" href="index.html"><span class="brand-mark"><img src="'+h(site.logoImage||'/assets/dss-mark.svg')+'" alt="" width="60" height="40"></span><span>'+h(site.siteTitle||'Data Science Community')+'</span></a>';}
   let memberLoading;
   async function loadMember() { if(memberLoading)return memberLoading;memberLoading=(async()=>{member = await api('/api/member'); if(member.content) applyPortalTheme(member.content.theme); updateBrand(member.content);renderMember();})();try{await memberLoading;}finally{memberLoading=null;} }
   function renderLibrary() {
@@ -338,7 +338,7 @@
     document.body.dataset.workspaceRole=workspaceRole;
     document.body.dataset.memberRole=user.role;
     const roleTitle=portal[workspaceRole+'Title']||(ambassador?'Campus workspace':society?'Society workspace':'Learning dashboard');
-    document.title=roleTitle+' | Data Science Society';
+    document.title=roleTitle+' | Data Science Community';
     const tabs={home:portal[workspaceRole+'OverviewLabel']||(ambassador?'Campus overview':society?'Member overview':'My learning'),...(enabled('Library')?{library:'Library',saved:'Saved resources'}:{}),...(enabled('Events')?{events:'Events'}:{}),...(contributor&&enabled('Contributions')?{contributions:'Contributions'}:{})};
     tabs.projects='My projects';
     if(hasTasks)tabs.tasks='Assigned work';
@@ -376,7 +376,7 @@
     const select = event.target.closest('[data-select-element]'); if(select){pageEditor.select(select.dataset.selectElement);return;}
     const button = event.target.closest('[data-action]'); if (!button) return; const action = button.dataset.action; button.disabled = true;
     try {
-      if (action === 'logout') { if (dirty && !confirm('Leave without saving your draft changes?')) return; const result = await api(auth.privateAdmin ? '/api/admin/logout' : '/api/auth/logout', 'POST', {}); dirty = false; location.href = result.logoutUrl || 'login.html'; }
+      if (action === 'logout') { clearTimeout(adminTimer); adminChecking = true; if (dirty && !confirm('Leave without saving your draft changes?')) return; const result = await api(auth.privateAdmin ? '/api/admin/logout' : '/api/auth/logout', 'POST', {}); dirty = false; location.href = result.logoutUrl || 'login.html'; }
       if (action === 'save') await saveDraft();
       if(action==='apply-workspaces')await saveLiveSettings();
       if (action === 'publish') { await saveDraft(); await api('/api/admin/publish', 'POST', { revision: model.revision });notifyPublished(); model = await api('/api/admin/content'); $('#save-state').textContent = 'All changes are live'; toast('Published. Your website has updated for visitors.'); }
@@ -460,7 +460,7 @@
       if (!auth.user) { location.replace('login.html'); return; }
       if(kind==='member'&&auth.user.role==='admin'&&!portalPreview){location.replace('/admin');return;}
       if (kind === 'admin') { if (auth.user.role !== 'admin') { location.replace('member-dashboard.html'); return; } [model, overview] = await Promise.all([api('/api/admin/content'), api('/api/admin/overview')]); applyPortalTheme(model.draft.theme); updateBrand(model.draft); adminShell();
-        let adminRevision,adminTimer,adminPending=false,adminChecking=false;
+        let adminRevision,adminPending=false;
         const syncAdmin=async()=>{
           if(document.hidden||$('#editor-dialog')?.open||document.activeElement?.matches('input,textarea,select')||dirty){adminPending=true;return;}
           adminPending=false;

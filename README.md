@@ -1,4 +1,4 @@
-# Data Science Society — version 2.1
+# Data Science Community — version 2.1
 
 Node.js 22+ website with the existing admin editor and community dashboards. Run npm install, then npm start.
 

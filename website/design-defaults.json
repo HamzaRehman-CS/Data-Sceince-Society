@@ -3,7 +3,7 @@
     "heroSection": {
       "heroTagline": "Advanced Research & Open Source Computing",
       "heroTitle": "Architecting the Future of Frontier Intelligence.",
-      "heroSubtitle": "Data Science Society unites elite researchers, algorithmic engineers, and domain specialists to construct verifiable, decentralized artificial intelligence ecosystems.",
+      "heroSubtitle": "Data Science Community unites elite researchers, algorithmic engineers, and domain specialists to construct verifiable, decentralized artificial intelligence ecosystems.",
       "primaryCtaText": "Apply for Membership",
       "primaryCtaLink": "join.html",
       "secondaryCtaText": "Explore Research",
@@ -19,7 +19,7 @@
     },
     "about": {
       "title": "Pioneering the Frontiers of Data & Artificial Intelligence",
-      "desc": "The Data Science Society is an elite academic and engineering collective dedicated to advancing theoretical breakthroughs, decentralized architectures, and sovereign AI."
+      "desc": "The Data Science Community is an elite academic and engineering collective dedicated to advancing theoretical breakthroughs, decentralized architectures, and sovereign AI."
     }
   },
   "next": {

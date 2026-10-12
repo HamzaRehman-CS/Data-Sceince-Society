@@ -2,7 +2,7 @@
   "name": "data-science-society",
   "version": "2.1.0",
   "private": true,
-  "description": "Data Science Society website and local content server",
+  "description": "Data Science Community website and local content server",
   "scripts": {
     "start": "node server.js",
     "build": "node scripts/build.cjs",

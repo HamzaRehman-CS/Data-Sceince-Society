@@ -12,10 +12,10 @@
     "customCss": ""
   },
   "siteSettings": {
-    "siteTitle": "Data Science Society",
+    "siteTitle": "Data Science Community",
     "logoImage": "",
-    "siteDesc": "Data Science Society (DSS) — Advancing Deep Learning, Quantum Neural Structures, and Open Science Computing.",
-    "footerCopyright": "© 2026 Data Science Society. All Rights Reserved.",
+    "siteDesc": "Data Science Community (DSS) — Advancing Deep Learning, Quantum Neural Structures, and Open Science Computing.",
+    "footerCopyright": "© 2026 Data Science Community. All Rights Reserved.",
     "contactEmail": "contact@datasciencesociety.org",
     "socialGithub": "https://github.com/datasciencesociety",
     "socialX": "https://x.com/datasciencesoc",
@@ -37,7 +37,7 @@
   "heroSection": {
     "heroTagline": "Advanced Research & Open Source Computing",
     "heroTitle": "Architecting the Future of Frontier Intelligence.",
-    "heroSubtitle": "Data Science Society unites elite researchers, algorithmic engineers, and domain specialists to construct verifiable, decentralized artificial intelligence ecosystems.",
+    "heroSubtitle": "Data Science Community unites elite researchers, algorithmic engineers, and domain specialists to construct verifiable, decentralized artificial intelligence ecosystems.",
     "primaryCtaText": "Apply for Membership",
     "primaryCtaLink": "join.html",
     "secondaryCtaText": "Explore Research",
@@ -54,7 +54,7 @@
   "pageHeaders": {
     "about": {
       "title": "Pioneering the Frontiers of Data & Artificial Intelligence",
-      "desc": "The Data Science Society is an elite academic and engineering collective dedicated to advancing theoretical breakthroughs, decentralized architectures, and sovereign AI."
+      "desc": "The Data Science Community is an elite academic and engineering collective dedicated to advancing theoretical breakthroughs, decentralized architectures, and sovereign AI."
     },
     "research": {
       "title": "Frontier AI & Machine Learning Research",
@@ -82,7 +82,7 @@
     },
     "contact": {
       "title": "Connect with Our Research Directors",
-      "desc": "Initiate academic partnerships, industry research sponsorships, or media inquiries with the Data Science Society."
+      "desc": "Initiate academic partnerships, industry research sponsorships, or media inquiries with the Data Science Community."
     }
   },
   "_updatedAt": "2026-08-23T16:35:00.000Z",

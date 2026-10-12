@@ -18,5 +18,5 @@
       }).join('')||'<p class="empty-content">New content will appear here when it is published.</p>';
     }
   };
-  document.addEventListener('error',e=>{if(e.target.matches?.('.journal-image img,.project-art img')){e.target.replaceWith(Object.assign(document.createElement('span'),{className:'image-placeholder',textContent:'Data Science Society'}));}},true);
+  document.addEventListener('error',e=>{if(e.target.matches?.('.journal-image img,.project-art img')){e.target.replaceWith(Object.assign(document.createElement('span'),{className:'image-placeholder',textContent:'Data Science Community'}));}},true);
 })();
